@@ -3,215 +3,1085 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Python Challenge — Live Leaderboard</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Saira+Condensed:wght@600;700;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<title>Python Challenge — Academic Festival 2026 · GIS</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Saira+Condensed:wght@500;600;700;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0a0707;--bg-2:#0f0a0a;--panel:#140d0d;--panel-2:#1a1010;
+  /* Cyberpunk 2077 palette: glitch-yellow + black, cyan & red data accents */
+  --bg:#0a0707;--bg-2:#100a0a;--panel:#140d0d;--panel-2:#1a1010;
   --hair:#3a1a20;--hair-2:#5a2430;
-  --amber:#ff2e54;--amber-2:#cc1838;--amber-dim:#8a2030;
-  --green:#2bd46f;--cyan:#00f0ff;--red:#ff2e54;
-  --gold:#ffcf40;--gold-hi:#fff3c4;--gold-lo:#b8860b;
-  --silver:#dfe6ef;--silver-hi:#ffffff;--silver-lo:#8a96a6;
-  --bronze:#cd7f32;--bronze-hi:#f0a868;--bronze-lo:#7a4a1a;
-  --text:#e8dce0;--dim:#8a7580;--bright:#fff0f4;
-  --glow:0 0 12px;
-  --font-display:'Saira Condensed','Oswald','Arial Narrow',system-ui,sans-serif;--font-hud:'Rajdhani','Segoe UI',system-ui,sans-serif;--font-mono:'JetBrains Mono','SF Mono','Consolas',monospace;
+  --cp-yellow:#fcee0a;--cp-cyan:#00f0ff;--cp-red:#ff2e54;--cp-green:#2bd46f;--cp-dim:#6f7a6a;
+  --accent:#ff2e54;--accent-2:#cc1838;--accent-ink:#2a0610;--ml:#00f0ff;--ml-dim:#0a8a96;
+  --grid:rgba(255,46,84,.035);
+  --success:#00f0ff;--correct:#00f0ff;--wrong:#ff2e54;
+  --text:#ece8cf;--text-dim:#8f8a5e;--text-bright:#fffce0;
+  --warn:#fcee0a;--ok:#00f0ff;
+  --code-bg:#14181f;--code-bar:#1a1f28;
+  --c-cm:#6a9955;--c-kw:#569cd6;--c-st:#ce9178;--c-nm:#b5cea8;--c-bi:#dcdcaa;--ln:#46566a;
+  --glow:0 0 10px;
+  --clip:polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  /* TYPE SYSTEM */
+  --font-display:'Saira Condensed','Oswald','Arial Narrow',system-ui,sans-serif;  /* big headers */
+  --font-hud:'Rajdhani','Segoe UI',system-ui,sans-serif;                          /* HUD labels */
+  --font-mono:'JetBrains Mono','SF Mono','Consolas','Courier New',monospace;        /* data, code */
+  /* SPACING SCALE */
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;
+  /* METALLIC MEDALS */
+  --gold:#ffcf40;--gold-hi:#fff3c4;--gold-lo:#b8860b;--gold-glow:rgba(255,207,64,.5);
+  --silver:#dfe6ef;--silver-hi:#ffffff;--silver-lo:#8a96a6;--silver-glow:rgba(223,230,239,.45);
+  --bronze:#cd7f32;--bronze-hi:#f0a868;--bronze-lo:#7a4a1a;--bronze-glow:rgba(205,127,50,.5);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'JetBrains Mono',monospace;color:var(--text);background:var(--bg);min-height:100vh;overflow-x:hidden;
-  background-image:
-    radial-gradient(1100px 600px at 80% -10%, rgba(255,46,84,.12), transparent 60%),
-    radial-gradient(900px 600px at 10% 110%, rgba(0,240,255,.06), transparent 60%),
-    repeating-linear-gradient(0deg, rgba(255,46,84,.02) 0px, rgba(255,46,84,.02) 1px, transparent 1px, transparent 3px);
-  -webkit-font-smoothing:antialiased}
-.scanline{position:fixed;inset:0;pointer-events:none;z-index:999;background:linear-gradient(rgba(255,46,84,.025),transparent 3px);background-size:100% 4px;opacity:.4}
-.wrap{max-width:1500px;margin:0 auto;padding:26px 36px 50px;position:relative;z-index:1}
+html{font-size:15px}
+body{font-family:'JetBrains Mono','Space Grotesk',monospace;color:var(--text);background:var(--bg);height:100vh;overflow:hidden;-webkit-font-smoothing:antialiased;background-image:repeating-linear-gradient(0deg,rgba(255,46,84,.012) 0px,rgba(255,46,84,.012) 1px,transparent 1px,transparent 3px)}
+.mono{font-family:'JetBrains Mono',monospace}
 
-/* header */
-.lb-head{display:flex;align-items:center;gap:20px;margin-bottom:6px}
-.lb-logo{width:58px;height:58px;flex-shrink:0;filter:drop-shadow(0 0 8px rgba(255,214,10,.5))}
-.lb-logo svg{width:100%;height:100%}
-.lb-titles h1{font-weight:800;font-size:2.3rem;letter-spacing:.06em;color:var(--bright);line-height:1;text-shadow:var(--glow) rgba(255,214,10,.4)}
-.lb-titles h1 .y{color:var(--amber)}
-.lb-titles .sub{font-family:var(--font-hud);font-weight:600;font-size:.92rem;color:var(--cyan);letter-spacing:.18em;margin-top:8px;opacity:.8}
-.lb-status{margin-left:auto;text-align:right}
-.phase-badge{display:inline-flex;align-items:center;gap:10px;font-family:var(--font-hud);font-weight:700;font-size:1.05rem;letter-spacing:.14em;
-  color:#0a0a06;background:var(--amber);padding:9px 20px;border-radius:4px;box-shadow:var(--glow) rgba(255,214,10,.6)}
-.live-dot{width:9px;height:9px;border-radius:50%;background:#0a0a06;animation:pulse 1.2s infinite}
-@keyframes pulse{50%{opacity:.25}}
-.updated{font-size:.72rem;color:var(--dim);margin-top:9px;letter-spacing:.06em}
-.divider{height:1px;background:linear-gradient(90deg,var(--amber),var(--green),transparent);margin:16px 0 28px;box-shadow:0 0 8px rgba(255,214,10,.4)}
+/* PER-PHASE THEMES (same cyber concept, different ops mode) */
+/* UNIFIED CP2077 theme: red primary + cyan secondary (all phases identical). */
+body[data-phase="1"],body[data-phase="2"],body[data-phase="3"],body[data-phase="0"]{
+  --accent:#ff2e54;--accent-2:#cc1838;--accent-ink:#2a0610;--ml:#00f0ff;--ml-dim:#0a8a96;--grid:rgba(255,46,84,.04);}
+.scanline{position:fixed;inset:0;pointer-events:none;z-index:9999;background:linear-gradient(rgba(255,46,84,.02),transparent 3px);background-size:100% 4px;opacity:.4}
+/* CP2077 decorative accents */
+.codepane-bar{position:relative}
+.codepane-bar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--accent);opacity:.5}
+.unit-head{position:relative}
+.unit-head::before{content:"";position:absolute;left:0;bottom:-1px;width:60px;height:2px;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+/* hazard stripe accent for active phase intro tag */
+.pi-tag{position:relative;display:inline-block;padding-left:18px}
+.pi-tag::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:8px;height:14px;background:repeating-linear-gradient(45deg,var(--accent),var(--accent) 2px,transparent 2px,transparent 4px)}
+/* glitch-in for stage */
+@keyframes cpGlitch{0%{opacity:0;transform:translateX(-3px)}30%{opacity:1;transform:translateX(2px)}60%{transform:translateX(-1px)}100%{opacity:1;transform:none}}
+.qcard,.phase-intro{animation:cpGlitch .3s both}
+/* terminal LED -> diamond cyber shape */
+.term-led{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+/* DEPTH + MICRO-DETAILS injected */
+/* registration-mark grid texture (the + crosses from CP2077 reference) */
+.window::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+  background-image:radial-gradient(circle, var(--hair-2) .5px, transparent .5px);background-size:46px 46px;background-position:23px 23px}
+/* HUD: layered authority — accent bar + sublabel + tick marks */
+.hud{position:relative}
+.hud::after{content:"";position:absolute;left:0;bottom:-2px;width:140px;height:2px;background:var(--accent);box-shadow:0 0 10px var(--accent);z-index:51}
+.hud-brand{position:relative}
+.hud-brand::after{content:"";position:absolute;right:0;top:14px;bottom:14px;width:1px;background:var(--accent);opacity:.4}
+/* depth on panels */
+.cp-notif,.panel-box,.live-lb,.codepane,.terminal{box-shadow:0 0 24px -10px var(--accent), inset 0 1px 0 rgba(255,255,255,.03)}
+/* phase intro card: add corner registration ticks */
+.cp-notif{position:relative}
+.cp-notif::before,.cp-notif::after{content:"";position:absolute;width:7px;height:7px;z-index:3}
+.cp-notif::before{top:-1px;right:20px;border-top:2px solid var(--accent);border-right:2px solid var(--accent)}
+/* HUD status readout: stronger */
+.hud-status{position:relative}
+/* segmented divider util */
+.seg-divider{height:1px;background:repeating-linear-gradient(90deg,var(--accent) 0,var(--accent) 12px,transparent 12px,transparent 18px);opacity:.5;margin:var(--s4) 0}
 
-/* podium */
-.podium{display:grid;grid-template-columns:1fr 1.18fr 1fr;gap:22px;align-items:end;margin-bottom:34px}
-.pod{position:relative;border-radius:8px;padding:26px 22px;text-align:center;border:1px solid var(--hair-2);
-  background:linear-gradient(180deg,var(--panel-2),var(--panel));overflow:hidden;transition:.4s}
-.pod::before{content:"";position:absolute;top:0;left:0;right:0;height:3px}
-.pod::after{content:attr(data-tag);position:absolute;top:8px;right:10px;font-size:.56rem;letter-spacing:.16em;color:var(--amber-dim);opacity:.6}
-.pod.p1{transform:translateY(-22px);border-color:rgba(255,207,64,.6);box-shadow:0 24px 70px -28px var(--gold), inset 0 0 50px rgba(255,207,64,.05)}
-.pod.p1::before{background:linear-gradient(90deg,var(--gold-lo),var(--gold-hi),var(--gold-lo));box-shadow:0 0 16px var(--gold)}
-.pod.p2::before{background:linear-gradient(90deg,var(--silver-lo),var(--silver-hi),var(--silver-lo));box-shadow:0 0 12px var(--silver)}
-.pod.p3::before{background:linear-gradient(90deg,var(--bronze-lo),var(--bronze-hi),var(--bronze-lo));box-shadow:0 0 12px var(--bronze)}
-.pod .medal{font-weight:800;font-size:.92rem;letter-spacing:.14em;padding:5px 14px;border-radius:3px;display:inline-block;margin-bottom:14px}
-.pod.p1 .medal{color:#3a2c00;background:linear-gradient(160deg,var(--gold-hi),var(--gold) 45%,var(--gold-lo));box-shadow:0 0 16px var(--gold),inset 0 1px 1px rgba(255,255,255,.5);font-family:var(--font-hud);font-weight:700;text-shadow:0 1px 0 rgba(255,255,255,.3)}
-.pod.p2 .medal{color:#2a3038;background:linear-gradient(160deg,var(--silver-hi),var(--silver) 45%,var(--silver-lo));box-shadow:0 0 12px var(--silver),inset 0 1px 1px rgba(255,255,255,.6);font-family:var(--font-hud);font-weight:700;text-shadow:0 1px 0 rgba(255,255,255,.4)}
-.pod.p3 .medal{color:#2a1607;background:linear-gradient(160deg,var(--bronze-hi),var(--bronze) 45%,var(--bronze-lo));box-shadow:0 0 12px var(--bronze),inset 0 1px 1px rgba(255,255,255,.35);font-family:var(--font-hud);font-weight:700;text-shadow:0 1px 0 rgba(255,255,255,.2)}
-.pod .rank-num{font-family:var(--font-display);font-weight:800;font-size:3.6rem;line-height:1;margin-bottom:6px;color:var(--bright)}
-.pod.p1 .rank-num{font-size:4.4rem;background:linear-gradient(180deg,var(--gold-hi),var(--gold) 50%,var(--gold-lo));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 24px var(--gold)}
-.pod.p2 .rank-num{background:linear-gradient(180deg,var(--silver-hi),var(--silver) 50%,var(--silver-lo));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 18px var(--silver)}
-.pod.p3 .rank-num{background:linear-gradient(180deg,var(--bronze-hi),var(--bronze) 50%,var(--bronze-lo));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 18px var(--bronze)}
-.pod .team{font-family:var(--font-display);font-weight:700;font-size:1.5rem;color:var(--bright);margin-bottom:4px;word-break:break-word;letter-spacing:.01em}
-.pod.p1 .team{font-size:1.65rem}
-.pod .members{font-size:.8rem;color:var(--dim);margin-bottom:16px;min-height:1.2em}
-.pod .total{font-weight:800;font-size:2.1rem;color:var(--amber);line-height:1;text-shadow:var(--glow) rgba(255,214,10,.3)}
-.pod.p1 .total{font-size:2.7rem}
-.pod .total-l{font-size:.62rem;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;margin-top:4px}
-.pod .breakdown{display:flex;justify-content:center;gap:14px;margin-top:16px;padding-top:14px;border-top:1px solid var(--hair)}
-.pod .bd{font-size:.7rem;color:var(--dim)}
-.pod .bd b{display:block;color:var(--text);font-size:1rem;margin-top:2px}
+/* corner brackets on code pane */
+.codepane::before,.codepane::after{content:"";position:absolute;width:10px;height:10px;z-index:2;pointer-events:none}
+.codepane::before{top:6px;left:6px;border-top:2px solid var(--accent);border-left:2px solid var(--accent);opacity:.55}
+.codepane::after{bottom:6px;right:6px;border-bottom:2px solid var(--accent);border-right:2px solid var(--accent);opacity:.55}
+/* ===== CP2077 NOTIFICATION-CARD COMPONENTS ===== */
+/* Section header tab: rectangle with cut corner + outline (like NOTIFICATIONS/CURSOR) */
+.cp-tab{display:inline-flex;align-items:center;gap:10px;font-family:var(--font-hud);font-weight:700;font-size:.92rem;
+  letter-spacing:.18em;color:var(--accent);text-transform:uppercase;padding:9px 22px 9px 16px;border:1px solid var(--accent);
+  background:rgba(0,0,0,.4);clip-path:polygon(0 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%);position:relative}
+.cp-tab::after{content:"";position:absolute;left:0;right:0;bottom:0;height:0}
+/* chevron arrow group »»» */
+.cp-chev{display:inline-flex;gap:1px;align-items:center;color:var(--accent)}
+.cp-chev span{font-weight:800;font-size:1rem;line-height:1;opacity:.85}
+.cp-chev span:nth-child(1){opacity:.4}.cp-chev span:nth-child(2){opacity:.6}.cp-chev span:nth-child(3){opacity:.85}
+/* star-in-box badge */
+.cp-badge{display:inline-grid;place-items:center;width:42px;height:42px;background:var(--accent);color:var(--accent-ink);
+  font-weight:800;clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,7px 100%,0 calc(100% - 7px))}
+/* zone-style phase tag (ZONE:DANGER look) */
+.cp-zone{display:inline-flex;align-items:center;gap:9px;font-family:'JetBrains Mono';font-weight:700;font-size:.7rem;
+  letter-spacing:.14em;color:var(--accent);text-transform:uppercase;padding:5px 12px;border:1px solid var(--accent);
+  clip-path:polygon(8px 0,100% 0,100% 100%,0 100%,0 8px)}
+.cp-zone .seg{display:inline-flex;gap:3px}
+.cp-zone .seg i{width:8px;height:8px;border:1px solid var(--accent);display:inline-block}
+.cp-zone .seg i.on{background:var(--accent)}
+/* notification card frame */
+.cp-card{border:1px solid var(--accent);background:rgba(0,0,0,.35);position:relative;
+  clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
+.cp-card-block{background:var(--accent);color:var(--accent-ink)}
+/* phase-intro notification card */
+.cp-notif{display:flex;align-items:stretch;max-width:600px;margin:0 auto 8px;border:1px solid var(--accent);
+  background:rgba(0,0,0,.4);clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));
+  box-shadow:0 0 24px -8px var(--accent)}
+.cp-notif-block{display:grid;place-items:center;min-width:78px;background:var(--accent);color:var(--accent-ink);padding:0 18px}
+.cp-notif-num{font-family:'JetBrains Mono';font-weight:800;font-size:2rem;line-height:1}
+.cp-notif-body{flex:1;padding:14px 18px;text-align:left;display:flex;flex-direction:column;justify-content:center}
+.cp-notif-tag{font-family:'JetBrains Mono';font-size:.68rem;letter-spacing:.16em;color:var(--accent);text-transform:uppercase;margin-bottom:5px}
+.cp-notif-title{font-family:var(--font-display);font-weight:800;font-size:2rem;letter-spacing:.01em;color:var(--text-bright);line-height:1}
+.cp-notif .cp-chev{padding:0 18px;font-size:1.4rem;align-self:center}
+.cp-notif .cp-chev span{font-weight:800}
+/* chevron in buttons */
+.cp-chev-btn{letter-spacing:-1px;opacity:.7;margin-left:4px}
+/* unit-head zone tag */
+.cp-zone.unit-id{font-family:'JetBrains Mono';font-weight:800;font-size:1rem;letter-spacing:.08em;color:var(--accent-ink);
+  background:var(--accent);border:none;padding:6px 14px;clip-path:polygon(8px 0,100% 0,100% 100%,0 100%,0 8px);
+  text-shadow:none}
+.unit-chev{margin-left:2px;font-size:.9rem;color:var(--accent);opacity:.7}
+.unit-chev span{font-weight:800}
+/* glitch glow on accent timer/elements adapts to phase via var(--accent) */
 
-/* list */
-.list-head{display:grid;grid-template-columns:60px 1fr 100px 100px 100px 120px;gap:14px;padding:0 22px 10px;
-  font-size:.68rem;letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
-.list-head .r{text-align:center}.list-head .n{text-align:right}
-.row{display:grid;grid-template-columns:60px 1fr 100px 100px 100px 120px;gap:14px;align-items:center;
-  padding:15px 22px;background:var(--panel);border:1px solid var(--hair);border-radius:6px;margin-bottom:9px;transition:.4s;position:relative}
-.row::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--amber-dim);opacity:.5}
-.row:hover{border-color:var(--hair-2)}
-.row.eliminated{opacity:.3;filter:grayscale(.7)}
-.row.eliminated::before{background:var(--red)}
-.row .rk{font-weight:800;font-size:1.35rem;color:var(--amber);text-align:center;text-shadow:var(--glow) rgba(255,214,10,.25)}
-.row .tm{min-width:0}
-.row .tm .t{font-family:var(--font-display);font-weight:700;font-size:1.3rem;color:var(--bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.01em}
-.row .tm .m{font-size:.78rem;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row .ph{font-size:1.02rem;color:var(--text);text-align:right}
-.row .ph.dim{color:var(--amber-dim);opacity:.5}
-.row .tot{font-family:var(--font-display);font-weight:800;font-size:1.6rem;color:var(--red);text-align:right}
-.row .elim-tag{font-size:.6rem;letter-spacing:.1em;color:var(--red);border:1px solid rgba(255,59,59,.4);padding:2px 7px;border-radius:3px;margin-left:8px}
 
-.section-label{font-size:.74rem;letter-spacing:.18em;color:var(--amber-dim);text-transform:uppercase;margin:0 0 14px 4px}
-.section-label::before{content:"// ";color:var(--cyan)}
-.empty,.loading{text-align:center;padding:90px 20px;color:var(--dim);font-size:1.05rem}
-.loading::after{content:"_";animation:blink 1s infinite}
-@keyframes blink{50%{opacity:0}}
-.fade-in{animation:fadeIn .5s both}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
-@media(max-width:900px){
-  .podium{grid-template-columns:1fr;gap:14px}.pod.p1{transform:none}
-  .list-head,.row{grid-template-columns:44px 1fr 80px}
-  .p1c,.p2c,.p3c{display:none}
-}
-@media(max-width:560px){
-  .wrap{padding:18px 14px 40px}
-  .lb-head{flex-wrap:wrap;gap:12px}
-  .lb-titles h1{font-size:1.9rem}
-  .lb-logo{width:44px;height:44px}
-  .pod{padding:18px 14px}
-  .pod .rank-num,.pod.p1 .rank-num,.pod.p2 .rank-num,.pod.p3 .rank-num{font-size:2.8rem}
-  .pod .team,.pod.p1 .team{font-size:1.2rem}
-  .pod .total,.pod.p1 .total{font-size:2rem}
-  .list-head,.row{grid-template-columns:36px 1fr 64px;gap:8px;padding-left:14px;padding-right:14px}
-  .row .tm .t{font-size:1.05rem}
-  .lb-status{width:100%;text-align:left}
-}
+.window{display:flex;flex-direction:column;height:100vh;position:relative;
+  background:
+    radial-gradient(700px 400px at 88% -8%, rgba(255,77,61,.06), transparent 60%),
+    radial-gradient(800px 500px at 6% 108%, rgba(65,224,208,.05), transparent 60%),
+    linear-gradient(var(--grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:auto,auto,48px 48px,48px 48px}
+
+/* HUD */
+.hud{height:48px;flex-shrink:0;display:flex;align-items:stretch;border-bottom:2px solid var(--accent);box-shadow:0 1px 12px -2px var(--accent);background:rgba(10,12,16,.85);backdrop-filter:blur(8px);position:relative;z-index:50}
+.hud-brand{display:flex;align-items:center;gap:12px;padding:0 22px;border-right:1px solid var(--hair)}
+.hud-logo{width:28px;height:28px;flex-shrink:0}
+.hud-logo svg{width:100%;height:100%;display:block}
+.hud-name{font-family:'JetBrains Mono';font-weight:700;font-size:.84rem;letter-spacing:.06em;color:var(--text-bright);text-shadow:0 0 8px var(--accent)}
+.hud-name .x{color:var(--accent)}
+.hud-readout{display:flex;align-items:center;gap:26px;padding:0 22px;margin-left:auto;font-family:var(--font-hud);font-size:.78rem;font-weight:600;letter-spacing:.12em;color:var(--text-dim)}
+.hud-readout .k{color:var(--text-dim);margin-right:6px}.hud-readout b{color:var(--ml)}
+.hud-status{display:flex;align-items:center;gap:8px;padding:0 22px;border-left:1px solid var(--hair);font-family:'JetBrains Mono';font-size:.66rem;letter-spacing:.12em;color:var(--ml)}
+.hud-status .pulse{width:7px;height:7px;border-radius:50%;background:var(--ml);box-shadow:0 0 10px var(--ml);animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.3}}
+
+/* phase progress strip */
+.phasebar{height:42px;flex-shrink:0;display:flex;align-items:center;gap:0;border-bottom:1px solid var(--hair);background:rgba(14,17,23,.55);padding:0 22px;position:relative;z-index:40}
+.pstep{display:flex;align-items:center;gap:9px;font-family:var(--font-hud);font-weight:600;font-size:.82rem;letter-spacing:.14em;color:var(--text-dim);padding:0 18px 0 0}
+.pstep .pn{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--hair-2);display:grid;place-items:center;font-size:.62rem;color:var(--text-dim)}
+.pstep.active{color:var(--text-bright)}
+.pstep.active .pn{border-color:var(--accent);background:var(--accent);color:var(--accent-ink);box-shadow:0 0 12px var(--accent);clip-path:polygon(0 0,calc(100% - 4px) 0,100% 4px,100% 100%,4px 100%,0 calc(100% - 4px))}
+.pstep.done{color:var(--ok)}
+.pstep.done .pn{border-color:var(--ok);background:var(--ok);color:#0a0c10}
+.pstep .arrow{color:var(--hair-2);margin-left:18px}
+
+/* MAIN */
+.main{flex:1;display:flex;min-height:0;position:relative;z-index:10}
+.rail{width:56px;flex-shrink:0;border-right:1px solid var(--hair);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:4px;background:rgba(14,17,23,.5)}
+.rail-node{width:56px;height:46px;display:grid;place-items:center;color:var(--text-dim);position:relative;font-size:1.05rem}
+.rail-node.active{color:var(--accent)}
+.rail-node.active::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:2px;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.rail-label{font-family:'JetBrains Mono';font-size:.48rem;color:var(--text-dim);letter-spacing:.08em;margin-top:2px}
+
+/* sidebar */
+.sidebar{width:230px;flex-shrink:0;border-right:1px solid var(--hair);display:flex;flex-direction:column;overflow:hidden;background:rgba(17,21,28,.45)}
+.sb-head{padding:13px 18px 9px}
+.sb-head .t{font-family:var(--font-hud);font-weight:700;font-size:.78rem;letter-spacing:.2em;color:var(--accent);text-transform:uppercase}
+.sb-list{flex:1;overflow-y:auto;padding:2px 0}
+.module{padding:8px 18px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:.13s;border-left:2px solid transparent}
+.module:hover{background:rgba(65,224,208,.04)}
+.module.active{background:rgba(255,77,61,.08);border-left-color:var(--accent)}
+.module.correct{border-left-color:var(--cp-cyan)}
+.module.wrong{border-left-color:var(--cp-red)}
+.module .mnode{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--text-dim);flex-shrink:0;transition:.15s}
+.module.active .mnode{border-color:var(--accent);background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.module.correct .mnode{border-color:var(--cp-cyan);background:var(--cp-cyan);box-shadow:0 0 8px var(--cp-cyan)}
+.module.wrong .mnode{border-color:var(--cp-red);background:var(--cp-red);box-shadow:0 0 8px var(--cp-red)}
+.module .mname{font-family:var(--font-mono);font-size:.82rem;color:var(--text);letter-spacing:.02em}
+.module.correct .mname{color:var(--cp-cyan)}
+.module.wrong .mname{color:var(--cp-red)}
+.module .mch{margin-left:auto;font-family:'JetBrains Mono';font-size:.56rem;color:var(--warn)}
+.sb-telemetry{border-top:1px solid var(--hair);padding:14px 18px}
+.sb-telemetry .tl{font-family:var(--font-hud);font-weight:600;font-size:.72rem;letter-spacing:.16em;color:var(--text-dim);margin-bottom:9px;text-transform:uppercase}
+.tbar{height:5px;background:#1a212b;border-radius:3px;overflow:hidden;border:1px solid var(--hair)}
+.tbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--ml),var(--ok));transition:width .4s;box-shadow:0 0 8px rgba(65,224,208,.5)}
+.sb-telemetry .tnum{font-family:var(--font-mono);font-weight:700;font-size:.82rem;color:var(--ml);margin-top:8px;letter-spacing:.04em}
+
+/* CONTENT - maximised */
+.content{flex:1;display:flex;flex-direction:column;min-width:0}
+.content-body{flex:1;overflow-y:auto;padding:0}
+.stage{max-width:1100px;margin:0 auto;padding:22px 30px 30px;width:100%}
+
+/* botbar */
+.botbar{height:40px;flex-shrink:0;border-top:1px solid var(--accent);background:rgba(10,7,7,.92);display:flex;align-items:center;padding:0 18px;gap:22px;font-family:var(--font-mono);font-size:.78rem;letter-spacing:.06em;color:var(--text-dim);position:relative;z-index:20}
+.botbar .bi{display:flex;align-items:center;gap:6px}.botbar .bi .ic{color:var(--accent)}
+.botbar .bteam{color:var(--ml);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.botbar .bright{margin-left:auto;display:flex;gap:24px;align-items:center}
+.botbar .timer{font-weight:700;font-size:1.15rem;color:var(--accent);letter-spacing:.06em;text-shadow:0 0 10px var(--accent)}.botbar .timer.warn{color:var(--warn)}.botbar .timer.crit{color:var(--accent);animation:blink 1s infinite}
+.botbar .timer.frozen{color:var(--ml);animation:none}
+.pausebtn{font-family:'JetBrains Mono';font-size:.72rem;font-weight:700;letter-spacing:.06em;color:var(--accent);background:transparent;border:1px solid var(--hair-2);border-radius:5px;padding:5px 12px;cursor:pointer;transition:.14s}
+.pausebtn:hover{border-color:var(--accent);background:rgba(255,214,10,.08)}
+@keyframes blink{50%{opacity:.35}}
+
+/* shared code pane (Sublime/VS style) */
+.codepane{background:var(--code-bg);border:1px solid var(--hair-2);clip-path:var(--clip);overflow:hidden;position:relative}
+.codepane-bar{display:flex;align-items:center;gap:8px;padding:9px 15px;background:var(--code-bar);border-bottom:1px solid var(--hair)}
+.codepane-bar .cd{width:10px;height:10px;border-radius:50%}
+.cd.r{background:#ff5f56}.cd.y{background:#ffbd2e}.cd.g{background:#27c93f}
+.cdname{font-family:'JetBrains Mono';font-size:.74rem;color:var(--text-dim);margin-left:6px}
+.cdlang{margin-left:auto;font-family:'JetBrains Mono';font-size:.62rem;color:var(--ml-dim);letter-spacing:.1em}
+.src{font-family:'JetBrains Mono';font-size:1.2rem;line-height:1.9;color:#d4d4d4;white-space:pre;overflow-x:auto;counter-reset:ln;padding:16px 4px 16px 0}
+.src .cl{display:block;position:relative;padding-left:62px;min-height:1.85em}
+.src .cl::before{content:counter(ln);counter-increment:ln;position:absolute;left:0;width:44px;text-align:right;color:var(--ln);font-size:.95rem;user-select:none;padding-right:16px}
+.cm{color:var(--c-cm);font-style:italic}.kw{color:var(--c-kw)}.st{color:var(--c-st)}.nm{color:var(--c-nm)}.bi{color:var(--c-bi)}
+
+/* unit head */
+.unit-head{display:flex;align-items:center;gap:16px;padding-bottom:14px;margin-bottom:16px;border-bottom:1px solid var(--hair)}
+.unit-id{font-family:'JetBrains Mono';font-weight:800;font-size:1.3rem;color:var(--accent);letter-spacing:.06em}
+.unit-file{font-family:'JetBrains Mono';font-size:.95rem;color:var(--text-dim)}
+.ch-tag{font-family:'JetBrains Mono';font-size:.6rem;color:var(--warn);background:rgba(255,206,74,.1);border:1px solid rgba(255,206,74,.4);padding:2px 9px;border-radius:5px;margin-left:8px}
+.unit-status{margin-left:auto;font-family:'JetBrains Mono';font-size:.62rem;letter-spacing:.1em;color:var(--ml-dim)}
+
+/* terminal */
+.terminal{margin-top:18px;background:#0c0f14;border:1px solid var(--hair-2);clip-path:var(--clip);overflow:hidden}
+.term-bar{display:flex;align-items:center;gap:9px;padding:9px 15px;background:var(--panel-2);border-bottom:1px solid var(--hair);font-family:'JetBrains Mono';font-size:.68rem;letter-spacing:.1em;color:var(--text-dim);text-transform:uppercase}
+.term-led{width:8px;height:8px;border-radius:50%;background:var(--ml);box-shadow:0 0 8px var(--ml)}
+.term-hint{margin-left:auto;color:var(--text-dim);text-transform:none;letter-spacing:0}
+.term-body{padding:16px 18px;font-family:'JetBrains Mono';font-size:1.2rem}
+.term-run{color:#6a9955;margin-bottom:6px}
+.term-input{width:100%;background:transparent;border:none;outline:none;resize:vertical;font-family:'JetBrains Mono';font-size:1.2rem;color:#d4d4d4;line-height:1.7;min-height:72px;caret-color:var(--accent)}
+.term-input::placeholder{color:#4a5663;font-style:italic}
+.term-input:disabled{color:var(--ok);-webkit-text-fill-color:var(--ok);opacity:1}
+
+/* actions */
+.actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:20px}
+.btn{font-family:'JetBrains Mono';font-weight:700;font-size:.98rem;border:none;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));padding:15px 30px;cursor:pointer;transition:.15s;letter-spacing:.03em}
+.btn-submit{background:var(--accent);color:var(--accent-ink);box-shadow:0 0 18px -6px var(--accent)}
+.btn-submit:hover{background:var(--accent-2);transform:translateY(-1px)}
+.btn-submit:disabled{background:var(--ok);color:#0a2012;transform:none;box-shadow:none}
+.btn-skip{background:transparent;color:var(--warn);border:1px solid rgba(255,206,74,.5)}
+.btn-skip:hover{background:rgba(255,206,74,.12)}
+.btn-next{background:var(--ml);color:#06231f}
+.btn-next:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.feedback{font-family:'JetBrains Mono';font-size:1rem;margin-left:4px}
+.feedback.ok{color:var(--ok)}.feedback.no{color:var(--warn)}
+.nav-info{margin-left:auto;font-family:'JetBrains Mono';font-size:.92rem;color:var(--text-dim)}
+
+/* MC options */
+.mc-opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+.mc-opt{display:flex;align-items:center;gap:14px;padding:19px 22px;background:var(--panel);border:1px solid var(--hair-2);clip-path:polygon(0 0,calc(100% - 9px) 0,100% 9px,100% 100%,9px 100%,0 calc(100% - 9px));cursor:pointer;transition:.14s;font-size:1.2rem}
+.mc-opt:hover{border-color:var(--ml);background:rgba(65,224,208,.05)}
+.mc-opt.selected{border-color:var(--accent);background:rgba(255,77,61,.08)}
+.mc-opt.correct{border-color:var(--ok);background:rgba(126,231,135,.1)}
+.mc-opt.wrong{border-color:var(--accent);background:rgba(255,77,61,.12)}
+.mc-key{width:32px;height:32px;flex-shrink:0;display:grid;place-items:center;background:var(--bg-2);border:1px solid var(--hair-2);font-family:'JetBrains Mono';font-weight:700;font-size:.85rem;color:var(--accent);clip-path:polygon(0 0,calc(100% - 5px) 0,100% 5px,100% 100%,5px 100%,0 calc(100% - 5px))}
+.mc-opt.selected .mc-key{background:var(--accent);color:#0a0c10;border-color:var(--accent)}
+.mc-opt.correct .mc-key{background:var(--ok);color:#0a0c10;border-color:var(--ok)}
+.q-prompt{font-family:var(--font-display);font-size:1.8rem;color:var(--text-bright);font-weight:600;margin-bottom:24px;line-height:1.25;letter-spacing:.01em}
+
+/* login */
+#loginView{height:100%;overflow-y:auto;display:flex;align-items:flex-start;justify-content:center}
+.login-doc{max-width:620px;width:100%;padding:42px 36px 60px}
+.lg-eyebrow{font-family:'JetBrains Mono';font-size:.7rem;letter-spacing:.2em;color:var(--ml);text-transform:uppercase;margin-bottom:12px}
+.lg-title{font-family:'JetBrains Mono';font-size:2.4rem;font-weight:700;color:var(--text-bright);line-height:1.05;letter-spacing:.02em;margin-bottom:8px;text-shadow:var(--glow) rgba(255,214,10,.35)}
+.lg-title .x{color:var(--accent)}
+.lg-meta{font-family:'JetBrains Mono';font-size:.8rem;color:var(--text-dim);margin-bottom:6px}
+.lg-comment{font-family:'JetBrains Mono';font-size:.76rem;color:var(--c-cm);margin-bottom:30px}
+.panel-box{border:1px solid var(--hair-2);background:var(--panel);clip-path:var(--clip);padding:28px;position:relative}
+.panel-box::before{content:"";position:absolute;top:-1px;left:24px;width:42px;height:2px;background:var(--accent)}
+.fg{margin-bottom:22px}.fg:last-child{margin-bottom:0}
+.flabel{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono';font-size:.78rem;color:var(--c-kw);margin-bottom:9px}
+.flabel .eq{color:var(--text-dim)}
+.team-input{width:100%;background:var(--bg-2);border:1px solid var(--hair-2);border-radius:7px;color:#fff;font-family:'JetBrains Mono';font-size:1.05rem;padding:14px;outline:none;transition:.15s}
+.team-input::placeholder{color:#4a5663}
+.team-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,77,61,.16)}
+.members-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px}
+.members-head .count{font-family:'JetBrains Mono';font-size:.72rem;color:var(--text-dim)}
+.member-row{display:flex;gap:10px;align-items:center;margin-bottom:10px;animation:fadeIn .22s both}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+.member-num{width:38px;height:46px;flex-shrink:0;display:grid;place-items:center;font-family:'JetBrains Mono';font-weight:800;font-size:.9rem;color:var(--accent-ink);background:var(--accent);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px));box-shadow:0 0 12px var(--accent)}
+.member-input{flex:1;min-width:0;background:var(--bg-2);border:1px solid var(--hair-2);border-radius:7px;color:#fff;font-family:'JetBrains Mono';font-size:.96rem;padding:12px 14px;outline:none;transition:.15s}
+.member-input::placeholder{color:#4a5663}
+.member-input:focus{border-color:var(--ml);box-shadow:0 0 0 3px rgba(65,224,208,.16)}
+.remove-btn{width:42px;height:46px;flex-shrink:0;border:1px solid var(--hair-2);background:transparent;color:var(--accent);border-radius:7px;cursor:pointer;font-size:1.15rem;transition:.14s}
+.remove-btn:hover{background:rgba(255,77,61,.12);border-color:var(--accent)}
+.remove-btn:disabled{opacity:.3;cursor:not-allowed}
+.add-btn{width:100%;margin-top:5px;background:rgba(65,224,208,.06);border:1px dashed var(--ml-dim);color:var(--ml);font-family:'JetBrains Mono';font-size:.84rem;padding:13px;border-radius:7px;cursor:pointer;transition:.15s}
+.add-btn:hover{background:rgba(65,224,208,.14);border-color:var(--ml);color:#fff}
+.add-btn:disabled{opacity:.4;cursor:not-allowed;border-style:solid;color:var(--text-dim)}
+.add-note{font-family:'JetBrains Mono';font-size:.7rem;color:var(--text-dim);text-align:center;margin-top:9px}
+.run-btn{width:100%;margin-top:28px;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:var(--accent-ink);font-family:'JetBrains Mono';font-weight:700;font-size:1.02rem;letter-spacing:.04em;border:none;padding:17px;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));cursor:pointer;transition:.16s;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 0 30px -6px rgba(252,238,10,.5)}
+.run-btn:hover{transform:translateY(-2px);box-shadow:0 18px 44px -14px rgba(255,77,61,.9)}
+.err{display:none;margin-top:15px;font-family:'JetBrains Mono';font-size:.82rem;color:var(--accent);background:rgba(255,77,61,.1);border:1px solid rgba(255,77,61,.4);border-radius:7px;padding:11px 14px}
+.err.show{display:block;animation:fadeIn .2s both}
+
+/* phase intro card */
+.phase-intro{max-width:760px;margin:0 auto;padding:50px 30px;text-align:center}
+.pi-tag{font-family:'JetBrains Mono';font-size:.74rem;letter-spacing:.2em;color:var(--ml);text-transform:uppercase;margin-bottom:14px}
+.pi-title{font-family:var(--font-display);font-size:3rem;font-weight:800;letter-spacing:.01em;color:var(--text-bright);margin-bottom:8px;line-height:.95}
+.pi-sub{color:var(--text-dim);font-size:1.05rem;line-height:1.6;max-width:52ch;margin:0 auto 14px}
+.pi-detail{display:flex;gap:30px;justify-content:center;margin:30px 0;flex-wrap:wrap}
+.pi-stat{text-align:center}
+.pi-stat .n{font-family:var(--font-display);font-size:2.4rem;font-weight:800;color:var(--accent);line-height:1}
+.pi-stat .l{font-family:'JetBrains Mono';font-size:.66rem;letter-spacing:.12em;color:var(--text-dim);text-transform:uppercase;margin-top:4px}
+.pi-go{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:var(--accent-ink);font-family:'JetBrains Mono';font-weight:800;font-size:1.05rem;letter-spacing:.04em;border:none;padding:16px 48px;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));cursor:pointer;transition:.16s;box-shadow:0 0 30px -8px var(--accent)}
+.pi-go:hover{transform:translateY(-2px)}
+
+/* phase 3 split view */
+.p3-cols{display:grid;grid-template-columns:1fr;gap:18px}
+.p3-instructions{background:var(--panel);border:1px solid var(--hair);border-radius:9px;padding:18px 20px;font-size:1.1rem;color:var(--text-dim);line-height:1.6}
+.p3-instructions b{color:var(--ml)}
+.p3-instructions .step{color:var(--text)}
+.paste-label{display:block;font-family:'JetBrains Mono';font-size:.72rem;letter-spacing:.1em;color:var(--ml);text-transform:uppercase;margin:18px 0 8px}
+
+/* live sync styles above */
+/* live sync / gate / rank styles */
+.sync-box{margin:22px auto 0;max-width:520px}
+.gate-status{font-family:'JetBrains Mono';font-size:.92rem;color:var(--text-dim);text-align:center;letter-spacing:.02em}
+.gate-status.ok{color:var(--ml)}
+.gate-status.warn{color:var(--cp-yellow)}
+.fallback-code{margin-top:12px;font-family:'JetBrains Mono';font-weight:700;font-size:1.3rem;color:var(--cp-yellow);
+  text-align:center;padding:14px;border:1px dashed var(--hair-2);background:var(--panel);
+  clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
+.gate-wait{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:26px;
+  font-family:'JetBrains Mono';font-size:1rem;color:var(--cp-yellow);letter-spacing:.03em}
+.gate-spinner{width:16px;height:16px;border:2px solid var(--hair-2);border-top-color:var(--cp-yellow);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.rank-box{max-width:460px;margin:22px auto 0;border:1px solid var(--hair-2);background:var(--panel);padding:16px 18px;
+  clip-path:var(--clip)}
+.rank-title{font-family:'JetBrains Mono';font-size:.72rem;letter-spacing:.12em;color:var(--ml);margin-bottom:12px;text-transform:uppercase}
+.rank-row{display:grid;grid-template-columns:54px 1fr 70px;gap:10px;align-items:center;padding:9px 10px;
+  font-family:'JetBrains Mono';font-size:.95rem;border-bottom:1px solid var(--hair)}
+.rank-row:last-child{border-bottom:none}
+.rank-row.me{background:rgba(252,238,10,.08);color:var(--cp-yellow);font-weight:700}
+.rank-row .rr-rank{color:var(--text-dim)}
+.rank-row.me .rr-rank{color:var(--cp-yellow)}
+.rank-row .rr-team{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank-row .rr-tot{text-align:right;font-weight:700;color:var(--ml)}
+.rank-row.me .rr-tot{color:var(--cp-yellow)}
+
+/* live leaderboard styles */
+/* live leaderboard on phase-summary screen */
+.live-lb{max-width:560px;margin:22px auto 0;border:1px solid var(--accent);background:rgba(0,0,0,.4);padding:16px 18px;
+  clip-path:var(--clip)}
+.llb-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.llb-tag{font-size:.66rem !important;padding:4px 12px !important}
+.llb-count{font-family:'JetBrains Mono';font-size:.72rem;color:var(--cp-cyan);letter-spacing:.06em}
+.llb-cols{display:grid;grid-template-columns:40px 1fr 110px 60px;gap:10px;font-family:'JetBrains Mono';font-size:.64rem;
+  letter-spacing:.1em;color:var(--text-dim);text-transform:uppercase;padding:0 6px 8px;border-bottom:1px solid var(--hair)}
+.llb-cols .r{text-align:right}
+.llb-row{display:grid;grid-template-columns:40px 1fr 110px 60px;gap:10px;align-items:center;padding:8px 6px;
+  font-family:'JetBrains Mono';font-size:.92rem;border-bottom:1px solid var(--hair);transition:.3s}
+.llb-row:last-child{border-bottom:none}
+.llb-row.me{background:rgba(255,46,84,.1);color:var(--accent);font-weight:700}
+.llb-rank{color:var(--text-dim)}
+.llb-row.me .llb-rank{color:var(--accent)}
+.llb-team{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.llb-bd{font-size:.74rem;color:var(--ml-dim);text-align:center}
+.llb-row.me .llb-bd{color:var(--cp-cyan)}
+.llb-tot{text-align:right;font-weight:700;color:var(--ml)}
+.llb-row.me .llb-tot{color:var(--accent)}
+.gate-wait-note{font-family:'JetBrains Mono';font-size:.82rem;color:var(--cp-cyan);text-align:center;margin-top:18px;letter-spacing:.02em;opacity:.85}
+
+/* finish */
+#finishView{display:none;height:100%;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px}
+#finishView.show{display:flex}
+.fin-badge{font-family:'JetBrains Mono';font-size:.72rem;letter-spacing:.16em;color:var(--ok);border:1px solid var(--ok);padding:7px 18px;border-radius:8px;margin-bottom:20px}
+.fin-title{font-family:var(--font-display);font-size:2.6rem;font-weight:800;color:#fff;margin-bottom:20px;letter-spacing:.01em}
+.fin-grid{display:flex;gap:36px;margin:10px 0 24px}
+.fin-cell .n{font-family:var(--font-display);font-size:3.4rem;font-weight:800;color:var(--ml);text-shadow:0 0 26px var(--ml);line-height:1}
+.fin-cell .l{font-family:'JetBrains Mono';font-size:.66rem;letter-spacing:.12em;color:var(--text-dim);text-transform:uppercase;margin-top:4px}
+.fin-team{font-family:'JetBrains Mono';color:var(--accent);font-size:1.05rem}
+.fin-sub{color:var(--text-dim);max-width:46ch;line-height:1.6;font-size:.92rem;margin-top:14px}
+
+@media(max-width:860px){.sidebar{display:none}.stage{padding:18px 16px}.mc-opts{grid-template-columns:1fr}}
+@media(max-width:560px){.rail{display:none}.hud-readout{display:none}.login-doc{padding:26px 16px 50px}.lg-title{font-size:1.8rem}.phasebar{padding:0 12px;overflow-x:auto}.pstep{padding-right:10px}.pstep .arrow{margin-left:10px}.botbar{font-size:.62rem;gap:8px;padding:0 10px;overflow:hidden}.botbar .bright{gap:8px}.pausebtn{padding:4px 7px;font-size:.6rem}}
 </style>
 </head>
-<body>
+<body data-phase="0">
 <div class="scanline"></div>
-<div class="wrap">
-  <div class="lb-head">
-    <div class="lb-logo">
-      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-        <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff2e54"/><stop offset="1" stop-color="#00f0ff"/></linearGradient></defs>
-        <rect x="6" y="6" width="52" height="52" rx="6" fill="none" stroke="url(#g)" stroke-width="3"/>
-        <circle cx="32" cy="32" r="6" fill="#ff2e54"/>
-        <g stroke="#ff2e54" stroke-width="2.4"><line x1="32" y1="6" x2="32" y2="20"/><line x1="32" y1="44" x2="32" y2="58"/><line x1="6" y1="32" x2="20" y2="32"/><line x1="44" y1="32" x2="58" y2="32"/></g>
-        <circle cx="32" cy="12" r="2.6" fill="#00f0ff"/><circle cx="32" cy="52" r="2.6" fill="#00f0ff"/><circle cx="12" cy="32" r="2.6" fill="#00f0ff"/><circle cx="52" cy="32" r="2.6" fill="#00f0ff"/>
-      </svg>
+<div class="window">
+  <div class="hud">
+    <div class="hud-brand"><div class="hud-logo"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M4 4 L20 4 L24 8 L24 24 L12 24 L8 20 L8 8 Z" fill="none" stroke="#fcee0a" stroke-width="2"/><path d="M14 11 L20 16 L14 21" fill="none" stroke="#00f0ff" stroke-width="2"/><rect x="9" y="14.5" width="4" height="3" fill="#fcee0a"/></svg></div><span class="hud-name">root@PYTHON<span class="x">:</span>~/challenge<span class="x">$</span></span></div>
+    <div class="hud-readout">
+      <span><span class="k">SESSION</span><b>ACADEMIC FESTIVAL 2026</b></span>
+      <span><span class="k">NODE</span><b>DIGITAL_TECH</b></span>
+      <span><span class="k">ADMIN</span><b>R.ALBON</b></span>
     </div>
-    <div class="lb-titles">
-      <h1>[ <span class="y">PYTHON</span> CHALLENGE ]</h1>
-      <div class="sub">ACADEMIC FESTIVAL 2026 · DIGITAL TECHNOLOGIES · GIS · root@challenge</div>
+    <div class="hud-status"><span class="pulse"></span><span id="hudState">SYSTEM READY</span></div>
+  </div>
+
+  <div class="phasebar" id="phasebar" style="display:none">
+    <div class="pstep" id="ps1"><span class="pn">1</span> GAUNTLET <span class="arrow">→</span></div>
+    <div class="pstep" id="ps2"><span class="pn">2</span> PREDICT OUTPUT <span class="arrow">→</span></div>
+    <div class="pstep" id="ps3"><span class="pn">3</span> LIVE DEBUG</div>
+  </div>
+
+  <div class="main">
+    <div class="rail">
+      <div class="rail-node active">◉<span class="rail-label">RUN</span></div>
+      <div class="rail-node">◫<span class="rail-label">DATA</span></div>
+      <div class="rail-node">⟐<span class="rail-label">NET</span></div>
     </div>
-    <div class="lb-status">
-      <span class="phase-badge"><span class="live-dot"></span><span id="phaseLabel">LIVE</span></span>
-      <div class="updated" id="updated">connecting…</div>
+    <div class="sidebar" id="sidebar" style="display:none">
+      <div class="sb-head"><span class="t" id="sbTitle">Modules</span></div>
+      <div class="sb-list" id="moduleList"></div>
+      <div class="sb-telemetry" id="telemetry">
+        <div class="tl" id="telLabel">PROGRESS</div>
+        <div class="tbar"><i id="telFill"></i></div>
+        <div class="tnum" id="telNum">0</div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="content-body" id="contentBody">
+        <!-- LOGIN -->
+        <div id="loginView">
+          <div class="login-doc">
+            <div class="lg-eyebrow">$ ./init_team.sh --register</div>
+            <div class="lg-title">[ PYTHON<span class="x">_</span>CHALLENGE ]</div>
+            <div class="lg-meta"># Academic Festival 2026 · Digital Technologies · Golden International School · Teacher Rommel</div>
+            <div class="lg-comment"># authenticate your squad to access the system</div>
+            <div class="panel-box">
+              <div class="fg">
+                <label class="flabel" for="teamName">team_name <span class="eq">=</span></label>
+                <input class="team-input" id="teamName" type="text" placeholder='"The Debuggers"' maxlength="40" autocomplete="off">
+              </div>
+              <div class="fg">
+                <div class="members-head">
+                  <label class="flabel" style="margin-bottom:0">members <span class="eq">= [ ]</span></label>
+                  <span class="count" id="memberCount"># 1 of 3</span>
+                </div>
+                <div id="memberList"></div>
+                <button class="add-btn" id="addBtn" onclick="addMember()">+ members.append()</button>
+                <div class="add-note"># members can change on the day — add or remove (1–3)</div>
+              </div>
+              <div class="err" id="err"></div>
+              <button class="run-btn" onclick="submitTeam()">▶ INITIALIZE &amp; START</button>
+            </div>
+          </div>
+        </div>
+        <!-- DYNAMIC STAGE -->
+        <div id="stageView" style="display:none"><div class="stage" id="stage"></div></div>
+        <!-- FINISH -->
+        <div id="finishView">
+          <div class="fin-badge">✓ CHALLENGE COMPLETE</div>
+          <div class="fin-title" id="finTitle">All phases complete</div>
+          <div class="fin-grid" id="finGrid"></div>
+          <div class="fin-team" id="finalTeam"></div>
+          <div class="fin-sub">Scores recorded. Return the unit to the facilitator for the leaderboard.</div>
+        </div>
+      </div>
+      <div class="botbar">
+        <div class="bi"><span class="ic">⚑</span><span class="bteam" id="stTeam">NO TEAM</span></div>
+        <div class="bi" id="stPhase">login</div>
+        <div class="bright">
+          <div class="bi">PY 3.x</div><div class="bi">UTF-8</div>
+          <button class="pausebtn" id="pauseBtn" onclick="togglePause()" style="display:none">⏸ PAUSE</button>
+          <div class="bi">⏱ <span class="timer" id="timer">--:--</span></div>
+        </div>
+      </div>
     </div>
   </div>
-  <div class="divider"></div>
-  <div id="board"><div class="loading">decrypting leaderboard</div></div>
 </div>
-
 <script>
-// ====== CONFIG: paste your Apps Script Web App URL here ======
-const API_URL = "https://script.google.com/macros/s/AKfycbwT7sC__IOHl7HUAEQGPqED_hrtBrWvZ_PvAcv_noY0fe2ofl5C_MBfjCWO1S3okg5o/exec";
-const REFRESH_MS = 5000; // live update every 5 seconds
-// =============================================================
-const PHASE_LABELS = { phase1:"PHASE 1 · RECON", phase2:"PHASE 2 · DECRYPT", finals:"FINAL · BREACH" };
+const QS=[{"n": 1, "key": ["6", "Pyt", "PYTHON"]}, {"n": 2, "key": ["F", "L", "firewall", "8"]}, {"n": 3, "key": ["Neo", "5"]}, {"n": 4, "key": ["Warm"]}, {"n": 5, "key": ["12"]}, {"n": 6, "key": ["3", "6"]}, {"n": 7, "key": ["1", "2", "3"]}, {"n": 8, "key": ["16", "3", "2"]}, {"n": 9, "key": ["[2, 4, 6]"]}, {"n": 10, "key": ["17"]}, {"n": 11, "key": ["1", "4"]}, {"n": 12, "key": ["2", "Ravi Lena "]}, {"n": 13, "key": ["[4, 16, 36, 64, 100]", "5"]}, {"n": 14, "key": ["15", "6"]}, {"n": 15, "key": ["3", "3"]}];
+const P1={"mc": [{"q": "What data type is the value  \"firewall\" ?", "opts": ["int", "str (string)", "list", "bool"], "a": 1}, {"q": "What does  len(\"encryption\")  return?", "opts": ["9", "10", "11", "8"], "a": 1}, {"q": "What is the value of  17 % 5 ?", "opts": ["3", "2", "3.4", "12"], "a": 1}, {"q": "Which one is a tuple (cannot be changed)?", "opts": ["[\"malware\"]", "{\"malware\"}", "(\"malware\",)", "\"malware\""], "a": 2}, {"q": "What is the value of  20 // 3 ?", "opts": ["6", "6.67", "7", "2"], "a": 0}, {"q": "How many items are in  {\"a\", \"b\", \"a\", \"c\", \"b\"} ?", "opts": ["5", "3", "2", "4"], "a": 1}], "rt": [{"codehtml": "<span class=\"cl\"><span class=\"bi\">print</span>(<span class=\"nm\">8</span> + <span class=\"nm\">5</span>)</span><span class=\"cl\"><span class=\"bi\">print</span>(<span class=\"nm\">8</span> * <span class=\"nm\">5</span>)</span>", "key": ["13", "40"]}, {"codehtml": "<span class=\"cl\">word = <span class=\"st\">&quot;cybersecurity&quot;</span></span><span class=\"cl\"><span class=\"bi\">print</span>(<span class=\"bi\">len</span>(word))</span><span class=\"cl\"><span class=\"bi\">print</span>(word[<span class=\"nm\">0</span>:<span class=\"nm\">5</span>])</span>", "key": ["13", "cyber"]}, {"codehtml": "<span class=\"cl\">total = <span class=\"nm\">0</span></span><span class=\"cl\"><span class=\"kw\">for</span> n <span class=\"kw\">in</span> [<span class=\"nm\">10</span>, <span class=\"nm\">20</span>, <span class=\"nm\">30</span>]:</span><span class=\"cl\">    total += n</span><span class=\"cl\"><span class=\"bi\">print</span>(total)</span>", "key": ["60"]}, {"codehtml": "<span class=\"cl\"><span class=\"kw\">for</span> i <span class=\"kw\">in</span> <span class=\"bi\">range</span>(<span class=\"nm\">1</span>, <span class=\"nm\">7</span>):</span><span class=\"cl\">    <span class=\"kw\">if</span> i % <span class=\"nm\">2</span> == <span class=\"nm\">0</span>:</span><span class=\"cl\">        <span class=\"bi\">print</span>(i)</span>", "key": ["2", "4", "6"]}, {"codehtml": "<span class=\"cl\">tag = <span class=\"st\">&quot;ai&quot;</span></span><span class=\"cl\"><span class=\"bi\">print</span>(tag * <span class=\"nm\">3</span>)</span><span class=\"cl\"><span class=\"bi\">print</span>(tag.<span class=\"bi\">upper</span>())</span>", "key": ["aiaiai", "AI"]}], "bug": [{"codehtml": "<span class=\"cl\">password = <span class=\"st\">&quot;1234&quot;</span></span><span class=\"cl\"><span class=\"kw\">if</span> <span class=\"bi\">len</span>(password) &lt; <span class=\"nm\">6</span></span><span class=\"cl\">    <span class=\"bi\">print</span>(<span class=\"st\">&quot;Too short&quot;</span>)</span>", "q": "Why won't this run?", "opts": ["Missing colon (:) after the if condition", "password needs to be a number", "len is spelled wrong", "< should be >"], "a": 0}, {"codehtml": "<span class=\"cl\">username = <span class=\"st\">&quot;admin&quot;</span></span><span class=\"cl\"><span class=\"bi\">print</span>(Username)</span>", "q": "What is the bug?", "opts": ["Username is capitalised \u2014 Python is case-sensitive", "print needs quotes", "admin must be a number", "Missing brackets"], "a": 0}, {"codehtml": "<span class=\"cl\">count = <span class=\"nm\">0</span></span><span class=\"cl\"><span class=\"kw\">for</span> c <span class=\"kw\">in</span> <span class=\"st\">&quot;data&quot;</span>:</span><span class=\"cl\">count += <span class=\"nm\">1</span></span><span class=\"cl\"><span class=\"bi\">print</span>(count)</span>", "q": "What is the bug?", "opts": ["\"data\" should be a list", "The line count += 1 is not indented inside the loop", "count should start at 1", "print is wrong"], "a": 1}, {"codehtml": "<span class=\"cl\">level = <span class=\"nm\">5</span></span><span class=\"cl\"><span class=\"kw\">if</span> level = <span class=\"nm\">10</span>:</span><span class=\"cl\">    <span class=\"bi\">print</span>(<span class=\"st\">&quot;Max&quot;</span>)</span>", "q": "What is the bug?", "opts": ["= should be == when comparing", "level should be a string", "Missing else branch", "if is spelled wrong"], "a": 0}, {"codehtml": "<span class=\"cl\">score = <span class=\"nm\">10</span></span><span class=\"cl\"><span class=\"bi\">print</span>(<span class=\"st\">&quot;Score: &quot;</span> + score)</span>", "q": "Why does this cause an error?", "opts": ["You can't add a string and an int \u2014 score needs str(score)", "score is too large", "print can only take one item", "Missing a loop"], "a": 0}]};
+const P2CARDS=[{"n": 1, "ch": false, "codehtml": "<span class=\"cl\">word = <span class=\"st\">&quot;Python&quot;</span></span><span class=\"cl\"><span class=\"bi\">print</span>(<span class=\"bi\">len</span>(word))</span><span class=\"cl\"><span class=\"bi\">print</span>(word[<span class=\"nm\">0</span>:<span class=\"nm\">3</span>])</span><span class=\"cl\"><span class=\"bi\">print</span>(word.<span class=\"bi\">upper</span>())</span>", "nout": 3}, {"n": 2, "ch": false, "codehtml": "<span class=\"cl\">code = <span class=\"st\">&quot;FIREWALL&quot;</span></span><span class=\"cl\"><span class=\"bi\">print</span>(code[<span class=\"nm\">0</span>])</span><span class=\"cl\"><span class=\"bi\">print</span>(code[-<span class=\"nm\">1</span>])</span><span class=\"cl\"><span class=\"bi\">print</span>(code.<span class=\"bi\">lower</span>())</span><span class=\"cl\"><span class=\"bi\">print</span>(<span class=\"bi\">len</span>(code))</span>", "nout": 4}, {"n": 3, "ch": false, "codehtml": "<span class=\"cl\">user = {<span class=\"st\">&quot;name&quot;</span>: <span class=\"st\">&quot;Neo&quot;</span>, <span class=\"st\">&quot;level&quot;</span>: <span class=\"nm\">3</span>}</span><span class=\"cl\">user[<span class=\"st\">&quot;level&quot;</span>] = user[<span class=\"st\">&quot;level&quot;</span>] + <span class=\"nm\">2</span></span><span class=\"cl\"><span class=\"bi\">print</span>(user[<span class=\"st\">&quot;name&quot;</span>])</span><span class=\"cl\"><span class=\"bi\">print</span>(user[<span class=\"st\">&quot;level&quot;</span>])</span>", "nout": 2}, {"n": 4, "ch": false, "codehtml": "<span class=\"cl\">temp = <span class=\"nm\">30</span></span><span class=\"cl\"><span class=\"kw\">if</span> temp &gt;= <span class=\"nm\">35</span>:</span><span class=\"cl\">    <span class=\"bi\">print</span>(<span class=\"st\">&quot;Hot&quot;</span>)</span><span class=\"cl\"><span class=\"kw\">elif</span> temp &gt;= <span class=\"nm\">25</span>:</span><span class=\"cl\">    <span class=\"bi\">print</span>(<span class=\"st\">&quot;Warm&quot;</span>)</span><span class=\"cl\"><span class=\"kw\">else</span>:</span><span class=\"cl\">    <span class=\"bi\">print</span>(<span class=\"st\">&quot;Cold&quot;</span>)</span>", "nout": 1}, {"n": 5, "ch": false, "codehtml": "<span class=\"cl\">total = <span class=\"nm\">0</span></span><span class=\"cl\"><span class=\"kw\">for</span> n <span class=\"kw\">in</span> [<span class=\"nm\">2</span>, <span class=\"nm\">4</span>, <span class=\"nm\">6</span>]:</span><span class=\"cl\">    total += n</span><span class=\"cl\"><span class=\"bi\">print</span>(total)</span>", "nout": 1}, {"n": 6, "ch": false, "codehtml": "<span class=\"cl\"><span class=\"kw\">for</span> i <span class=\"kw\">in</span> <span class=\"bi\">range</span>(<span class=\"nm\">1</span>, <span class=\"nm\">8</span>):</span><span class=\"cl\">    <span class=\"kw\">if</span> i % <span class=\"nm\">3</span> == <span class=\"nm\">0</span>:</span><span class=\"cl\">        <span class=\"bi\">print</span>(i)</span>", "nout": 2}, {"n": 7, "ch": false, "codehtml": "<span class=\"cl\">count = <span class=\"nm\">1</span></span><span class=\"cl\"><span class=\"kw\">while</span> count &lt;= <span class=\"nm\">3</span>:</span><span class=\"cl\">    <span class=\"bi\">print</span>(count)</span><span class=\"cl\">    count += <span class=\"nm\">1</span></span>", "nout": 3}, {"n": 8, "ch": false, "codehtml": "<span class=\"cl\"><span class=\"bi\">print</span>(<span class=\"nm\">2</span> ** <span class=\"nm\">4</span>)</span><span class=\"cl\"><span class=\"bi\">print</span>(<span class=\"nm\">17</span> // <span class=\"nm\">5</span>)</span><span class=\"cl\"><span class=\"bi\">print</span>(<span class=\"nm\">17</span> % <span class=\"nm\">5</span>)</span>", "nout": 3}, {"n": 9, "ch": false, "codehtml": "<span class=\"cl\">evens = []</span><span class=\"cl\"><span class=\"kw\">for</span> n <span class=\"kw\">in</span> <span class=\"bi\">range</span>(<span class=\"nm\">1</span>, <span class=\"nm\">7</span>):</span><span class=\"cl\">    <span class=\"kw\">if</span> n % <span class=\"nm\">2</span> == <span class=\"nm\">0</span>:</span><span class=\"cl\">        evens.<span class=\"bi\">append</span>(n)</span><span class=\"cl\"><span class=\"bi\">print</span>(evens)</span>", "nout": 1}, {"n": 10, "ch": false, "codehtml": "<span class=\"cl\">prices = {<span class=\"st\">&quot;chip&quot;</span>: <span class=\"nm\">3</span>, <span class=\"st\">&quot;ram&quot;</span>: <span class=\"nm\">8</span>, <span class=\"st\">&quot;ssd&quot;</span>: <span class=\"nm\">6</span>}</span><span class=\"cl\">total = <span class=\"nm\">0</span></span><span class=\"cl\"><span class=\"kw\">for</span> part <span class=\"kw\">in</span> prices:</span><span class=\"cl\">    total += prices[part]</span><span class=\"cl\"><span class=\"bi\">print</span>(total)</span>", "nout": 1}, {"n": 11, "ch": true, "codehtml": "<span class=\"cl\">number = <span class=\"nm\">12</span></span><span class=\"cl\">steps = <span class=\"nm\">0</span></span><span class=\"cl\"><span class=\"kw\">while</span> number &gt; <span class=\"nm\">1</span>:</span><span class=\"cl\">    <span class=\"kw\">if</span> number % <span class=\"nm\">2</span> == <span class=\"nm\">0</span>:</span><span class=\"cl\">        number = number // <span class=\"nm\">2</span></span><span class=\"cl\">    <span class=\"kw\">else</span>:</span><span class=\"cl\">        number = number - <span class=\"nm\">1</span></span><span class=\"cl\">    steps += <span class=\"nm\">1</span></span><span class=\"cl\"><span class=\"bi\">print</span>(number)</span><span class=\"cl\"><span class=\"bi\">print</span>(steps)</span>", "nout": 2}, {"n": 12, "ch": true, "codehtml": "<span class=\"cl\">marks = {<span class=\"st\">&quot;Ravi&quot;</span>: <span class=\"nm\">91</span>, <span class=\"st\">&quot;Sam&quot;</span>: <span class=\"nm\">68</span>, <span class=\"st\">&quot;Lena&quot;</span>: <span class=\"nm\">84</span>, <span class=\"st\">&quot;Tom&quot;</span>: <span class=\"nm\">55</span>}</span><span class=\"cl\">count = <span class=\"nm\">0</span></span><span class=\"cl\">names = <span class=\"st\">&quot;&quot;</span></span><span class=\"cl\"><span class=\"kw\">for</span> person <span class=\"kw\">in</span> marks:</span><span class=\"cl\">    <span class=\"kw\">if</span> marks[person] &gt;= <span class=\"nm\">80</span>:</span><span class=\"cl\">        count += <span class=\"nm\">1</span></span><span class=\"cl\">        names += person + <span class=\"st\">&quot; &quot;</span></span><span class=\"cl\"><span class=\"bi\">print</span>(count)</span><span class=\"cl\"><span class=\"bi\">print</span>(names)</span>", "nout": 2}, {"n": 13, "ch": true, "codehtml": "<span class=\"cl\">result = []</span><span class=\"cl\"><span class=\"kw\">for</span> x <span class=\"kw\">in</span> <span class=\"bi\">range</span>(<span class=\"nm\">2</span>, <span class=\"nm\">11</span>):</span><span class=\"cl\">    <span class=\"kw\">if</span> x % <span class=\"nm\">2</span> == <span class=\"nm\">0</span>:</span><span class=\"cl\">        result.<span class=\"bi\">append</span>(x ** <span class=\"nm\">2</span>)</span><span class=\"cl\"><span class=\"bi\">print</span>(result)</span><span class=\"cl\"><span class=\"bi\">print</span>(<span class=\"bi\">len</span>(result))</span>", "nout": 2}, {"n": 14, "ch": true, "codehtml": "<span class=\"cl\">n = <span class=\"nm\">1</span></span><span class=\"cl\">total = <span class=\"nm\">0</span></span><span class=\"cl\"><span class=\"kw\">while</span> n &lt;= <span class=\"nm\">20</span>:</span><span class=\"cl\">    <span class=\"kw\">if</span> n == <span class=\"nm\">6</span>:</span><span class=\"cl\">        <span class=\"kw\">break</span></span><span class=\"cl\">    total += n</span><span class=\"cl\">    n += <span class=\"nm\">1</span></span><span class=\"cl\"><span class=\"bi\">print</span>(total)</span><span class=\"cl\"><span class=\"bi\">print</span>(n)</span>", "nout": 2}, {"n": 15, "ch": true, "codehtml": "<span class=\"cl\">data = [<span class=\"nm\">5</span>, <span class=\"nm\">9</span>, <span class=\"nm\">5</span>, <span class=\"nm\">2</span>, <span class=\"nm\">9</span>, <span class=\"nm\">5</span>]</span><span class=\"cl\">counts = {}</span><span class=\"cl\"><span class=\"kw\">for</span> x <span class=\"kw\">in</span> data:</span><span class=\"cl\">    <span class=\"kw\">if</span> x <span class=\"kw\">in</span> counts:</span><span class=\"cl\">        counts[x] += <span class=\"nm\">1</span></span><span class=\"cl\">    <span class=\"kw\">else</span>:</span><span class=\"cl\">        counts[x] = <span class=\"nm\">1</span></span><span class=\"cl\"><span class=\"bi\">print</span>(counts[<span class=\"nm\">5</span>])</span><span class=\"cl\"><span class=\"bi\">print</span>(<span class=\"bi\">len</span>(<span class=\"bi\">set</span>(data)))</span>", "nout": 2}];
+const P3=[{"title": "Counting up", "codehtml": "<span class=\"cl\">count = <span class=\"nm\">1</span></span><span class=\"cl\"><span class=\"kw\">while</span> count &lt;= <span class=\"nm\">5</span></span><span class=\"cl\">    <span class=\"bi\">print</span>(count)</span><span class=\"cl\">    count += <span class=\"nm\">1</span></span>", "broken": "count = 1\nwhile count <= 5\n    print(count)\n    count += 1", "fixed": "count = 1\nwhile count <= 5:\n    print(count)\n    count += 1", "output": ["1", "2", "3", "4", "5"], "bug": "Missing colon (:) after the while condition.", "pts": 10}, {"title": "Sum a list", "codehtml": "<span class=\"cl\">numbers = [<span class=\"nm\">4</span>, <span class=\"nm\">8</span>, <span class=\"nm\">15</span>, <span class=\"nm\">16</span>, <span class=\"nm\">23</span>]</span><span class=\"cl\">total = <span class=\"nm\">0</span></span><span class=\"cl\"><span class=\"kw\">for</span> n <span class=\"kw\">in</span> numbers:</span><span class=\"cl\">total += n</span><span class=\"cl\"><span class=\"bi\">print</span>(total)</span>", "broken": "numbers = [4, 8, 15, 16, 23]\ntotal = 0\nfor n in numbers:\ntotal += n\nprint(total)", "fixed": "numbers = [4, 8, 15, 16, 23]\ntotal = 0\nfor n in numbers:\n    total += n\nprint(total)", "output": ["66"], "bug": "The line total += n must be indented inside the loop.", "pts": 15}, {"title": "Even numbers only", "codehtml": "<span class=\"cl\">evens = []</span><span class=\"cl\"><span class=\"kw\">for</span> n <span class=\"kw\">in</span> <span class=\"bi\">range</span>(<span class=\"nm\">1</span>, <span class=\"nm\">11</span>):</span><span class=\"cl\">    <span class=\"kw\">if</span> n % <span class=\"nm\">2</span> = <span class=\"nm\">0</span>:</span><span class=\"cl\">        evens.<span class=\"bi\">append</span>(n)</span><span class=\"cl\"><span class=\"bi\">print</span>(evens)</span>", "broken": "evens = []\nfor n in range(1, 11):\n    if n % 2 = 0:\n        evens.append(n)\nprint(evens)", "fixed": "evens = []\nfor n in range(1, 11):\n    if n % 2 == 0:\n        evens.append(n)\nprint(evens)", "output": ["[2, 4, 6, 8, 10]"], "bug": "Use == (comparison), not = (assignment), inside the if.", "pts": 20}, {"title": "Grade checker", "codehtml": "<span class=\"cl\">score = <span class=\"nm\">75</span></span><span class=\"cl\"><span class=\"kw\">if</span> score &gt;= <span class=\"nm\">90</span>:</span><span class=\"cl\">    <span class=\"bi\">print</span>(<span class=\"st\">&quot;A&quot;</span>)</span><span class=\"cl\"><span class=\"kw\">elif</span> score &gt;= <span class=\"nm\">80</span></span><span class=\"cl\">    <span class=\"bi\">print</span>(<span class=\"st\">&quot;B&quot;</span>)</span><span class=\"cl\"><span class=\"kw\">elif</span> score &gt;= <span class=\"nm\">70</span>:</span><span class=\"cl\">    <span class=\"bi\">print</span>(<span class=\"st\">&quot;C&quot;</span>)</span><span class=\"cl\"><span class=\"kw\">else</span>:</span><span class=\"cl\">    <span class=\"bi\">print</span>(<span class=\"st\">&quot;F&quot;</span>)</span>", "broken": "score = 75\nif score >= 90:\n    print(\"A\")\nelif score >= 80\n    print(\"B\")\nelif score >= 70:\n    print(\"C\")\nelse:\n    print(\"F\")", "fixed": "score = 75\nif score >= 90:\n    print(\"A\")\nelif score >= 80:\n    print(\"B\")\nelif score >= 70:\n    print(\"C\")\nelse:\n    print(\"F\")", "output": ["C"], "bug": "Missing colon (:) after the second elif condition.", "pts": 25}, {"title": "Word counter", "codehtml": "<span class=\"cl\">sentence = <span class=\"st\">&quot;the cat sat on the mat&quot;</span></span><span class=\"cl\">words = sentence.<span class=\"bi\">split</span>()</span><span class=\"cl\">counts = {}</span><span class=\"cl\"><span class=\"kw\">for</span> w <span class=\"kw\">in</span> words:</span><span class=\"cl\">    <span class=\"kw\">if</span> w <span class=\"kw\">in</span> counts:</span><span class=\"cl\">        counts[w] += <span class=\"nm\">1</span></span><span class=\"cl\">    <span class=\"kw\">else</span>:</span><span class=\"cl\">        counts[w] = <span class=\"nm\">1</span></span><span class=\"cl\"><span class=\"bi\">print</span>(counts[<span class=\"st\">&quot;the&quot;</span>])</span><span class=\"cl\"><span class=\"bi\">print</span>(<span class=\"bi\">len</span>(counts)</span>", "broken": "sentence = \"the cat sat on the mat\"\nwords = sentence.split()\ncounts = {}\nfor w in words:\n    if w in counts:\n        counts[w] += 1\n    else:\n        counts[w] = 1\nprint(counts[\"the\"])\nprint(len(counts)", "fixed": "sentence = \"the cat sat on the mat\"\nwords = sentence.split()\ncounts = {}\nfor w in words:\n    if w in counts:\n        counts[w] += 1\n    else:\n        counts[w] = 1\nprint(counts[\"the\"])\nprint(len(counts))", "output": ["2", "5"], "bug": "Missing closing parenthesis ) on the final print(len(counts)).", "pts": 30}];
+// ===== STATE =====
+let team=null, timerInt=null;
+const TIMERS={p1:8*60, p2:25*60, p3:30*60};
+let scores={p1:0, p2:0, p3:0};
+let phase=0;
 
-async function fetchData(){
-  if(!API_URL || API_URL.indexOf("PASTE_")===0){ renderDemo(); return; }
-  try{ const res=await fetch(API_URL); const data=await res.json(); render(data); }
-  catch(err){ document.getElementById('updated').textContent="// connection error — retrying"; }
-}
-function medalName(r){ return r===1?"GOLD":r===2?"SILVER":r===3?"BRONZE":""; }
-function esc(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// ===== LIVE SYNC CONFIG =====
+// Paste your Apps Script Web App URL here (the /exec one). Leave as-is to run OFFLINE (no sync).
+const SYNC_URL = "https://script.google.com/macros/s/AKfycbwT7sC__IOHl7HUAEQGPqED_hrtBrWvZ_PvAcv_noY0fe2ofl5C_MBfjCWO1S3okg5o/exec";
+const GATE_POLL_MS = 5000; // live update every 5 seconds
+function syncOn(){ return SYNC_URL && SYNC_URL.indexOf("PASTE_")!==0; }
 
-function render(data){
-  const phase=data.phase||'phase1';
-  document.getElementById('phaseLabel').textContent=PHASE_LABELS[phase]||'LIVE';
-  document.getElementById('updated').textContent="// sync "+new Date().toLocaleTimeString();
-  let teams=(data.teams||[]).slice();
-  let visible=teams;
-  if(phase==='phase2') visible=teams.filter(t=>t.status!=='eliminated');
-  if(phase==='finals') visible=teams.filter(t=>t.status!=='eliminated').slice(0,3);
-  const board=document.getElementById('board');
-  if(visible.length===0){ board.innerHTML='<div class="empty">// no teams yet — add them in the Scores sheet</div>'; return; }
-  const top3=visible.slice(0,3);
-  const rest=phase==='finals'?[]:visible.slice(3);
-  const podOrder=[top3[1],top3[0],top3[2]], podClass=['p2','p1','p3'], podTag=['NODE_02','NODE_01','NODE_03'];
-  let html='<div class="podium fade-in">';
-  podOrder.forEach((t,i)=>{
-    if(!t){ html+='<div></div>'; return; }
-    html+=`<div class="pod ${podClass[i]}" data-tag="${podTag[i]}">
-      <span class="medal">${medalName(t.rank)}</span>
-      <div class="rank-num">${t.rank}</div>
-      <div class="team">${esc(t.team)}</div>
-      <div class="members">${esc(t.members||'')}</div>
-      <div class="total">${t.total}</div><div class="total-l">total points</div>
-      <div class="breakdown"><span class="bd">P1<b>${t.p1}</b></span><span class="bd">P2<b>${t.p2}</b></span><span class="bd">P3<b>${t.p3}</b></span></div>
-    </div>`;
-  });
-  html+='</div>';
-  if(rest.length){
-    html+='<div class="section-label">standings</div>';
-    html+=`<div class="list-head"><span class="r">#</span><span>Team</span><span class="n p1c">P1</span><span class="n p2c">P2</span><span class="n p3c">P3</span><span class="n">Total</span></div>`;
-    rest.forEach(t=>{
-      const e=t.status==='eliminated';
-      html+=`<div class="row ${e?'eliminated':''} fade-in">
-        <span class="rk">${t.rank}</span>
-        <span class="tm"><div class="t">${esc(t.team)}${e?'<span class="elim-tag">TERMINATED</span>':''}</div><div class="m">${esc(t.members||'')}</div></span>
-        <span class="ph p1c ${t.p1?'':'dim'}">${t.p1}</span><span class="ph p2c ${t.p2?'':'dim'}">${t.p2}</span><span class="ph p3c ${t.p3?'':'dim'}">${t.p3}</span>
-        <span class="tot">${t.total}</span></div>`;
+// send a phase score to the Sheet. Returns true if sent OK.
+async function sendScore(phaseNum, score){
+  if(!syncOn()) return false;
+  try{
+    const res = await fetch(SYNC_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'}, // text/plain avoids CORS preflight
+      body: JSON.stringify({ team:team.name, members:team.members.join(', '), phase:phaseNum, score:score })
     });
+    const data = await res.json();
+    return !!(data && data.ok);
+  }catch(err){ return false; }
+}
+
+// ===== LIVE UPDATING (throttled) =====
+// Fire an update after each answered question so the leaderboard climbs in real time,
+// but throttle so rapid answers don't hammer the Sheet (at most one send per LIVE_MIN_MS per team).
+const LIVE_MIN_MS = 4000;   // minimum gap between live sends
+let _liveTimer=null, _livePending=null, _liveLastSent=0;
+function sendLiveScore(phaseNum, score){
+  if(!syncOn()) return;
+  _livePending = {phaseNum, score};       // always remember the latest
+  const now = Date.now();
+  const since = now - _liveLastSent;
+  if(since >= LIVE_MIN_MS){
+    flushLive();                           // enough time passed -> send now
+  } else if(!_liveTimer){
+    _liveTimer = setTimeout(flushLive, LIVE_MIN_MS - since); // schedule the trailing send
   }
-  board.innerHTML=html;
 }
-// demo placeholder uses OBVIOUSLY-FAKE codenames, not real names
-function renderDemo(){
-  render({phase:'phase1',teams:[
-    {team:'CIPHER_X',members:'[ team codename ]',p1:12,p2:13,p3:75,total:100,status:'active',rank:1},
-    {team:'NULL_BYTE',members:'[ team codename ]',p1:11,p2:14,p3:60,total:85,status:'active',rank:2},
-    {team:'OVERFLOW',members:'[ team codename ]',p1:13,p2:11,p3:55,total:79,status:'active',rank:3},
-    {team:'SEGFAULT',members:'[ team codename ]',p1:10,p2:12,p3:40,total:62,status:'active',rank:4},
-    {team:'KERNEL_PANIC',members:'[ team codename ]',p1:9,p2:10,p3:35,total:54,status:'active',rank:5},
-    {team:'DEADLOCK',members:'[ team codename ]',p1:8,p2:7,p3:20,total:35,status:'eliminated',rank:6},
-  ]});
-  document.getElementById('updated').textContent="// DEMO MODE — paste your Web App URL to go live";
+function flushLive(){
+  if(_liveTimer){ clearTimeout(_liveTimer); _liveTimer=null; }
+  if(!_livePending) return;
+  const {phaseNum, score} = _livePending;
+  _livePending=null; _liveLastSent=Date.now();
+  // fire-and-forget; phase-end sendScore is the guaranteed checkpoint
+  sendScore(phaseNum, score);
 }
-fetchData(); setInterval(fetchData, REFRESH_MS);
+// register the team on the board immediately at 0 pts (so everyone shows from the start)
+async function sendRegistration(){
+  if(!syncOn()) return;
+  try{
+    await fetch(SYNC_URL, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ team:team.name, members:team.members.join(', '), phase:0, score:0 })
+    });
+  }catch(err){}
+}
+
+// poll the gate; calls onOpen() once the given gate value appears
+let _gatePoll=null;
+function waitForGate(targetGate, onOpen){
+  if(!syncOn()){ onOpen(); return; } // offline: facilitator uses manual flow, just proceed
+  clearInterval(_gatePoll);
+  const check=async()=>{
+    try{
+      const res=await fetch(SYNC_URL); const data=await res.json();
+      const gate=(data&&data.gate)?data.gate:'';
+      const statusEl=document.getElementById('gateStatus');
+      if(gate===targetGate || gate==='finished'){
+        clearInterval(_gatePoll); _gatePoll=null; onOpen();
+      } else if(statusEl){
+        statusEl.textContent='// waiting for facilitator to open the next phase…';
+      }
+    }catch(err){
+      const statusEl=document.getElementById('gateStatus');
+      if(statusEl) statusEl.textContent='// connection issue — facilitator can advance you manually';
+    }
+  };
+  check(); _gatePoll=setInterval(check, GATE_POLL_MS);
+}
+
+// ===== REGISTRATION =====
+const MAX=3; let members=[""];
+function renderMembers(){
+  const list=document.getElementById('memberList'); list.innerHTML='';
+  members.forEach((val,i)=>{
+    const row=document.createElement('div'); row.className='member-row';
+    row.innerHTML=`<span class="member-num">${i+1}</span>
+      <input class="member-input" type="text" placeholder="member ${i+1} full name" maxlength="40" autocomplete="off"
+             value="${val.replace(/"/g,'&quot;')}" oninput="members[${i}]=this.value" aria-label="Member ${i+1}">
+      <button class="remove-btn" onclick="removeMember(${i})" ${members.length===1?'disabled':''} aria-label="Remove member ${i+1}">×</button>`;
+    list.appendChild(row);
+  });
+  document.getElementById('memberCount').textContent=`# ${members.length} of ${MAX}`;
+  const a=document.getElementById('addBtn');
+  a.disabled=members.length>=MAX; a.textContent=members.length>=MAX?'# maximum 3 members':'+ members.append()';
+}
+function addMember(){ if(members.length<MAX){members.push("");renderMembers();const ins=document.querySelectorAll('.member-input');ins[ins.length-1].focus();} }
+function removeMember(i){ if(members.length>1){members.splice(i,1);renderMembers();} }
+function submitTeam(){
+  const name=document.getElementById('teamName').value.trim();
+  const err=document.getElementById('err');
+  const filled=members.map(m=>m.trim()).filter(Boolean);
+  if(!name){err.textContent='// Error: team_name cannot be empty';err.classList.add('show');return;}
+  if(filled.length===0){err.textContent='// Error: members[] needs at least one name';err.classList.add('show');return;}
+  err.classList.remove('show');
+  team={name,members:filled,registeredAt:new Date().toISOString()};
+  sendRegistration(); // appear on the leaderboard at 0 pts right away
+  document.getElementById('loginView').style.display='none';
+  document.getElementById('stageView').style.display='block';
+  document.getElementById('phasebar').style.display='flex';
+  document.getElementById('sidebar').style.display='flex';
+  document.getElementById('stTeam').textContent=team.name;
+  showPhaseIntro(1);
+}
+
+// ===== HELPERS =====
+function normLine(s){return s.trim().replace(/\s+/g,' ');}
+function setBodyPhase(n){ document.body.setAttribute('data-phase', String(n)); }
+function setPhaseStep(n){
+  [1,2,3].forEach(i=>{
+    const el=document.getElementById('ps'+i);
+    el.classList.remove('active','done');
+    if(i<n) el.classList.add('done'); else if(i===n) el.classList.add('active');
+  });
+}
+let _timerRemaining=0, _timerOnEnd=null;
+function startTimer(seconds, onEnd){
+  clearInterval(timerInt);
+  _timerRemaining=seconds; _timerOnEnd=onEnd; paused=false;
+  const btn=document.getElementById('pauseBtn'); if(btn){ btn.style.display='inline-flex'; btn.textContent='⏸ PAUSE'; }
+  runTimerLoop();
+}
+function runTimerLoop(){
+  const el=document.getElementById('timer');
+  const tick=()=>{
+    let r=_timerRemaining;
+    const m=Math.floor(r/60),s=r%60;
+    el.textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    el.classList.toggle('warn',r<=120&&r>30); el.classList.toggle('crit',r<=30);
+    if(r<=0){ clearInterval(timerInt); timerInt=null; if(_timerOnEnd)_timerOnEnd(); return; }
+    _timerRemaining--;
+  };
+  tick(); timerInt=setInterval(tick,1000);
+}
+function resumeTimer(){ if(_timerRemaining>0){ runTimerLoop(); } }
+function buildModules(items, prefix){
+  const ml=document.getElementById('moduleList'); ml.innerHTML='';
+  items.forEach((it,i)=>{
+    const d=document.createElement('div'); d.className='module'; d.id='mod'+i;
+    d.innerHTML=`<span class="mnode"></span><span class="mname">${prefix}${String(i+1).padStart(2,'0')}</span>${it.ch?'<span class="mch">★</span>':''}`;
+    d.onclick=()=>window['jump_'+phase] && window['jump_'+phase](i);
+    ml.appendChild(d);
+  });
+}
+function markModule(i,cls){ const m=document.getElementById('mod'+i); if(m){m.classList.remove('active','done','correct','wrong');m.classList.add(cls);} }
+function markResult(i,isCorrect){ markModule(i, isCorrect?'correct':'wrong'); }
+function activeModule(i){ document.querySelectorAll('.module').forEach(m=>m.classList.remove('active')); const m=document.getElementById('mod'+i); if(m&&!m.classList.contains('done'))m.classList.add('active'); }
+function setTelemetry(label,doneText,frac){
+  document.getElementById('telLabel').textContent=label;
+  document.getElementById('telNum').textContent=doneText;
+  document.getElementById('telFill').style.width=(frac*100)+'%';
+}
+
+// ===== PHASE INTRO =====
+function showPhaseIntro(n){
+  phase=n; setPhaseStep(n); setBodyPhase(n);
+  document.getElementById('sidebar').style.display='none';
+  const stage=document.getElementById('stage');
+  const meta={
+    1:{tag:'PHASE 01 · RECON',title:'The Gauntlet',sub:'Rapid intel sweep. Three station types: multiple-choice recall, predict-the-output, and spot-the-bug. Each answer locks instantly — right or wrong. Bank as many as you can before the clock hits zero.',stats:[[P1.mc.length+P1.rt.length+P1.bug.length,'TARGETS'],[Math.floor(TIMERS.p1/60)+' min','TIMER'],['1 pt','PER HIT']],btn:'▶ INITIATE RECON',go:startPhase1},
+    2:{tag:'PHASE 02 · DECRYPT',title:'Predict the Output',sub:'Decrypt each program: read the script and type the exact output it produces. No running code — pure analysis. Two attempts per unit, or skip and return while time remains.',stats:[[QS.length,'CIPHERS'],[Math.floor(TIMERS.p2/60)+' min','TIMER'],['2 tries','PER UNIT']],btn:'▶ BEGIN DECRYPT',go:startPhase2},
+    3:{tag:'PHASE 03 · BREACH',title:'Live Debugging',sub:'Each program has an exploit — a bug. Patch it in Thonny, then paste the fixed code back here to run and verify. Harder breaches are worth more. Skip and return allowed.',stats:[[P3.length,'EXPLOITS'],[Math.floor(TIMERS.p3/60)+' min','TIMER'],['100','TOTAL PTS']],btn:'▶ START BREACH',go:startPhase3},
+  }[n];
+  document.getElementById('hudState').textContent='PHASE '+n+' STANDBY';
+  document.getElementById('stPhase').textContent=meta.tag;
+  const opsName={1:'RECON',2:'DECRYPT',3:'BREACH'}[n];
+  stage.innerHTML=`<div class="phase-intro">
+    <div class="cp-notif">
+      <div class="cp-notif-block"><span class="cp-notif-num">0${n}</span></div>
+      <div class="cp-notif-body">
+        <div class="cp-notif-tag">${meta.tag}</div>
+        <div class="cp-notif-title">${meta.title}</div>
+      </div>
+      <div class="cp-chev"><span>‹</span><span>‹</span><span>‹</span></div>
+    </div>
+    <div class="pi-sub">${meta.sub}</div>
+    <div class="pi-detail">${meta.stats.map(s=>`<div class="pi-stat"><div class="n">${s[0]}</div><div class="l">${s[1]}</div></div>`).join('')}</div>
+    <button class="pi-go" id="goBtn">${meta.btn} <span class="cp-chev-btn">›››</span></button>
+  </div>`;
+  document.getElementById('goBtn').onclick=meta.go;
+}
+
+// ===== PROFESSOR UPGRADE: phase-complete summary + LIVE leaderboard + manual next =====
+let _lbPoll=null;
+function showPhaseSummary(n, correctText, pointsText, nextPhase){
+  document.getElementById('sidebar').style.display='none';
+  setPhaseStep(nextPhase); // mark this one done
+  const stage=document.getElementById('stage');
+  const labels={1:'PHASE 01 · RECON',2:'PHASE 02 · DECRYPT',3:'PHASE 03 · BREACH'};
+  document.getElementById('hudState').textContent='PHASE '+n+' COMPLETE';
+  const phaseScore = n===1?scores.p1 : n===2?scores.p2 : scores.p3;
+  const runningTotal = scores.p1+scores.p2+scores.p3;
+
+  stage.innerHTML=`<div class="phase-intro">
+    <div class="pi-tag">✓ ${labels[n]} COMPLETE</div>
+    <div class="pi-title">Phase ${n} secured</div>
+    <div class="pi-detail">
+      <div class="pi-stat"><div class="n">${correctText}</div><div class="l">This phase</div></div>
+      <div class="pi-stat"><div class="n" style="color:var(--ml)">${pointsText}</div><div class="l">Banked</div></div>
+      <div class="pi-stat"><div class="n" style="color:var(--cp-cyan)">${runningTotal}</div><div class="l">Running total</div></div>
+    </div>
+    <div id="syncBox" class="sync-box"><div class="gate-status" id="gateStatus">// uploading score…</div></div>
+    <div id="liveLb" class="live-lb" style="display:none"></div>
+    <div class="gate-wait-note" id="waitNote" style="display:none">// leaderboard updates live as teams finish — wait for your facilitator's signal</div>
+    <div id="gateZone"></div>
+  </div>`;
+
+  (async ()=>{
+    const sent = await sendScore(n, phaseScore);
+    const sb=document.getElementById('syncBox');
+    if(syncOn() && sent){
+      sb.innerHTML=`<div class="gate-status ok">✓ score uploaded</div>`;
+      document.getElementById('waitNote').style.display='block';
+      startLiveLeaderboard();          // poll + redraw the standings
+      showContinueBtn(nextPhase, true); // manual next button (facilitator gives the cue)
+    } else if(syncOn() && !sent){
+      sb.innerHTML=`<div class="gate-status warn">⚠ couldn't reach the leaderboard. Show this to your facilitator:</div>
+        <div class="fallback-code">${team.name} · PHASE ${n} = ${phaseScore} pts</div>`;
+      showContinueBtn(nextPhase, true);
+    } else {
+      sb.style.display='none';
+      showContinueBtn(nextPhase, false);
+    }
+  })();
+}
+function showContinueBtn(nextPhase, waiting){
+  const gz=document.getElementById('gateZone');
+  const label = nextPhase>3 ? 'VIEW RESULTS' : ('CONTINUE TO PHASE '+nextPhase);
+  gz.innerHTML=`<button class="pi-go" id="contBtn">▶ ${label} <span class="cp-chev-btn">›››</span></button>`;
+  document.getElementById('contBtn').onclick=()=>{
+    clearInterval(_lbPoll); _lbPoll=null;
+    if(nextPhase>3) finishAll(); else showPhaseIntro(nextPhase);
+  };
+}
+// live leaderboard panel that keeps polling while the team waits
+function startLiveLeaderboard(){
+  if(!syncOn()) return;
+  clearInterval(_lbPoll);
+  const draw=async()=>{
+    try{
+      const res=await fetch(SYNC_URL); const data=await res.json();
+      const teams=(data.teams||[]);
+      const box=document.getElementById('liveLb'); if(!box) return;
+      box.style.display='block';
+      const meName=team.name.toLowerCase();
+      let rows='';
+      teams.slice(0,8).forEach((t,i)=>{
+        const isMe = t.team.toLowerCase()===meName;
+        rows+=`<div class="llb-row ${isMe?'me':''}">
+          <span class="llb-rank">${i+1<10?'0'+(i+1):(i+1)}</span>
+          <span class="llb-team">${isMe?'▸ ':''}${escapeHtml(t.team)}</span>
+          <span class="llb-bd">${t.p1}·${t.p2}·${t.p3}</span>
+          <span class="llb-tot">${t.total}</span>
+        </div>`;
+      });
+      const finished = teams.length;
+      box.innerHTML=`<div class="llb-head"><span class="cp-zone llb-tag">◆ LIVE STANDINGS</span><span class="llb-count">${finished} team${finished===1?'':'s'} submitted</span></div>
+        <div class="llb-cols"><span>#</span><span>Team</span><span>P1·P2·P3</span><span class="r">Total</span></div>
+        ${rows}`;
+    }catch(err){}
+  };
+  draw(); _lbPoll=setInterval(draw, GATE_POLL_MS);
+}
+function escapeHtml(s){return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+// fetch the leaderboard and show THIS team's rank + nearby standings
+async function showMyRank(){
+  if(!syncOn()) return;
+  try{
+    const res=await fetch(SYNC_URL); const data=await res.json();
+    const teams=(data.teams||[]);
+    const me=teams.findIndex(t=>t.team.toLowerCase()===team.name.toLowerCase());
+    const box=document.getElementById('rankBox');
+    if(me<0 || !box) return;
+    box.style.display='block';
+    const myRank=me+1, total=teams.length;
+    // show me + the team just above (target to chase)
+    let rows='';
+    const start=Math.max(0, me-1), end=Math.min(teams.length, me+2);
+    for(let i=start;i<end;i++){
+      const t=teams[i];
+      rows+=`<div class="rank-row ${i===me?'me':''}"><span class="rr-rank">#${i+1}</span><span class="rr-team">${i===me?'▸ ':''}${t.team}</span><span class="rr-tot">${t.total}</span></div>`;
+    }
+    box.innerHTML=`<div class="rank-title">// YOUR POSITION — RANK ${myRank} OF ${total}</div>${rows}`;
+  }catch(err){}
+}
+
+// ===== PROFESSOR UPGRADE: facilitator pause / freeze =====
+let paused=false, pauseRemaining=0;
+function togglePause(){
+  const btn=document.getElementById('pauseBtn');
+  if(!timerInt && !paused) return;
+  if(!paused){
+    paused=true; clearInterval(timerInt); timerInt=null;
+    document.getElementById('timer').classList.add('frozen');
+    if(btn) btn.textContent='▶ RESUME';
+    document.getElementById('hudState').textContent='⏸ PAUSED BY FACILITATOR';
+  } else {
+    paused=false;
+    document.getElementById('timer').classList.remove('frozen');
+    if(btn) btn.textContent='⏸ PAUSE';
+    document.getElementById('hudState').textContent='PHASE '+phase+' ACTIVE';
+    resumeTimer();
+  }
+}
+
+// ===== PHASE 1: GAUNTLET =====
+let p1items=[], p1pos=0, p1answered={};
+function startPhase1(){
+  phase=1; setPhaseStep(1); setBodyPhase(1);
+  document.getElementById('sidebar').style.display='flex';
+  document.getElementById('hudState').textContent='PHASE 1 ACTIVE';
+  document.getElementById('stPhase').textContent='PHASE 1 · THE GAUNTLET';
+  // build combined item list: mc, rt, bug
+  p1items=[];
+  P1.mc.forEach((m,i)=>p1items.push({type:'mc',data:m,label:'MC'}));
+  P1.rt.forEach((t,i)=>p1items.push({type:'rt',data:t,label:'TRACE'}));
+  P1.bug.forEach((b,i)=>p1items.push({type:'bug',data:b,label:'BUG'}));
+  p1pos=0; p1answered={}; scores.p1=0;
+  buildModules(p1items.map(it=>({ch:false})),'G');
+  window.jump_1=(i)=>{ p1pos=i; renderP1(); };
+  setTelemetry('GAUNTLET SCORE','0 / '+p1items.length,0);
+  startTimer(TIMERS.p1, endPhase1);
+  renderP1();
+}
+function renderP1(){
+  const it=p1items[p1pos]; if(!it) return; // guard against stale index
+  activeModule(p1pos);
+  const stage=document.getElementById('stage');
+  const locked=p1answered[p1pos]!==undefined;
+  const total=p1items.length;
+  if(it.type==='mc'){
+    stage.innerHTML=`
+      <div class="unit-head"><span class="cp-zone unit-id">◆ G${String(p1pos+1).padStart(2,'0')}</span><span class="unit-file">// multiple choice</span><span class="cp-chev unit-chev"><span>›</span><span>›</span><span>›</span></span><span class="unit-status">${it.label}</span></div>
+      <div class="q-prompt">${it.data.q}</div>
+      <div class="mc-opts" id="mcOpts">${it.data.opts.map((o,i)=>`<div class="mc-opt" data-i="${i}" onclick="answerP1MC(${i})"><span class="mc-key">${String.fromCharCode(65+i)}</span><span>${o}</span></div>`).join('')}</div>
+      <div class="actions"><span class="feedback" id="fb"></span><span class="nav-info">item ${p1pos+1} / ${total}</span></div>`;
+  } else if(it.type==='rt'){
+    stage.innerHTML=`
+      <div class="unit-head"><span class="cp-zone unit-id">◆ G${String(p1pos+1).padStart(2,'0')}</span><span class="unit-file">// rapid trace</span><span class="cp-chev unit-chev"><span>›</span><span>›</span><span>›</span></span><span class="unit-status">${it.label}</span></div>
+      <div class="codepane"><div class="codepane-bar"><span class="cd r"></span><span class="cd y"></span><span class="cd g"></span><span class="cdname">trace.py</span><span class="cdlang">PYTHON 3</span></div><pre class="src">${it.data.codehtml}</pre></div>
+      <div class="terminal"><div class="term-bar"><span class="term-led"></span>OUTPUT_BUFFER<span class="term-hint">predict the exact output</span></div>
+      <div class="term-body"><div class="term-run">&gt;&gt;&gt; run trace.py</div><textarea class="term-input" id="rtInput" placeholder="// type predicted output, one line per print" spellcheck="false" rows="3"></textarea></div></div>
+      <div class="actions"><button class="btn btn-submit" id="subBtn" onclick="answerP1RT()">▶ SUBMIT</button><span class="feedback" id="fb"></span><span class="nav-info">item ${p1pos+1} / ${total}</span></div>`;
+  } else {
+    stage.innerHTML=`
+      <div class="unit-head"><span class="cp-zone unit-id">◆ G${String(p1pos+1).padStart(2,'0')}</span><span class="unit-file">// spot the bug</span><span class="cp-chev unit-chev"><span>›</span><span>›</span><span>›</span></span><span class="unit-status">${it.label}</span></div>
+      <div class="codepane"><div class="codepane-bar"><span class="cd r"></span><span class="cd y"></span><span class="cd g"></span><span class="cdname">broken.py</span><span class="cdlang">PYTHON 3</span></div><pre class="src">${it.data.codehtml}</pre></div>
+      <div class="q-prompt" style="margin-top:18px">${it.data.q}</div>
+      <div class="mc-opts">${it.data.opts.map((o,i)=>`<div class="mc-opt" data-i="${i}" onclick="answerP1BUG(${i})"><span class="mc-key">${String.fromCharCode(65+i)}</span><span>${o}</span></div>`).join('')}</div>
+      <div class="actions"><span class="feedback" id="fb"></span><span class="nav-info">item ${p1pos+1} / ${total}</span></div>`;
+  }
+  if(locked) lockP1(p1answered[p1pos]);
+}
+function answerP1MC(i){ scoreP1Choice(i, p1items[p1pos].data.a); }
+function answerP1BUG(i){ scoreP1Choice(i, p1items[p1pos].data.a); }
+function scoreP1Choice(chosen, correct){
+  if(p1answered[p1pos]!==undefined) return;
+  const opts=document.querySelectorAll('.mc-opt');
+  opts.forEach(o=>o.style.pointerEvents='none');
+  opts[chosen].classList.add(chosen===correct?'correct':'wrong');
+  if(chosen!==correct) opts[correct].classList.add('correct');
+  const ok=chosen===correct;
+  p1answered[p1pos]={ok}; if(ok) scores.p1++;
+  markResult(p1pos,ok);
+  sendLiveScore(1, scores.p1);
+  const fb=document.getElementById('fb');
+  fb.textContent=ok?'✓ correct':'✗ incorrect'; fb.className='feedback '+(ok?'ok':'no');
+  updateP1Tel();
+  setTimeout(nextP1,750);
+}
+function answerP1RT(){
+  if(p1answered[p1pos]!==undefined) return;
+  const ta=document.getElementById('rtInput');
+  if(ta.value.trim()===''){ const fb=document.getElementById('fb'); fb.textContent='⚠ enter an answer first'; fb.className='feedback no'; return; }
+  const user=ta.value.split('\n').map(normLine).filter(Boolean);
+  const key=p1items[p1pos].data.key;
+  let ok=user.length===key.length; if(ok) for(let i=0;i<key.length;i++) if(normLine(key[i])!==user[i]) ok=false;
+  p1answered[p1pos]={ok,val:ta.value}; if(ok) scores.p1++;
+  ta.disabled=true; document.getElementById('subBtn').disabled=true; document.getElementById('subBtn').textContent='✓ LOCKED';
+  markResult(p1pos,ok);
+  sendLiveScore(1, scores.p1);
+  const fb=document.getElementById('fb'); fb.textContent=ok?'✓ correct':'✗ incorrect'; fb.className='feedback '+(ok?'ok':'no');
+  updateP1Tel();
+  setTimeout(nextP1,750);
+}
+function lockP1(a){
+  // re-render locked state minimally (disable inputs)
+  const it=p1items[p1pos];
+  if(it.type==='rt'){ const ta=document.getElementById('rtInput'); if(ta){ta.value=a.val||'';ta.disabled=true;} const sb=document.getElementById('subBtn'); if(sb){sb.disabled=true;sb.textContent='✓ LOCKED';} }
+  else { document.querySelectorAll('.mc-opt').forEach(o=>o.style.pointerEvents='none'); }
+  const fb=document.getElementById('fb'); if(fb){fb.textContent=a.ok?'✓ correct':'✗ incorrect';fb.className='feedback '+(a.ok?'ok':'no');}
+}
+function updateP1Tel(){
+  const done=Object.keys(p1answered).length;
+  setTelemetry('GAUNTLET SCORE', scores.p1+' / '+p1items.length, done/p1items.length);
+}
+function nextP1(){
+  const next=p1items.findIndex((_,i)=>p1answered[i]===undefined);
+  if(next>=0){ p1pos=next; renderP1(); }
+  else endPhase1();
+}
+function endPhase1(){ clearInterval(timerInt); timerInt=null; showPhaseSummary(1, scores.p1+' / '+p1items.length+' correct', scores.p1+' pts', 2); }
+
+// ===== PHASE 2: PREDICT OUTPUT =====
+let p2order=[], p2pos=0, p2ans={}, p2skip=new Set();
+function startPhase2(){
+  phase=2; setPhaseStep(2); setBodyPhase(2);
+  document.getElementById('sidebar').style.display='flex';
+  document.getElementById('hudState').textContent='PHASE 2 ACTIVE';
+  document.getElementById('stPhase').textContent='PHASE 2 · PREDICT OUTPUT';
+  p2order=P2CARDS.map(c=>c.n); p2pos=0; p2ans={}; p2skip=new Set(); scores.p2=0;
+  buildModules(P2CARDS.map(c=>({ch:c.ch})),'Q');
+  window.jump_2=(i)=>{ const idx=p2order.indexOf(P2CARDS[i].n); if(idx>=0){p2pos=idx;renderP2();} };
+  setTelemetry('SOLVE RATE','0 / '+P2CARDS.length,0);
+  startTimer(TIMERS.p2, endPhase2);
+  renderP2();
+}
+function p2card(n){ return P2CARDS.find(c=>c.n===n); }
+function renderP2(){
+  const n=p2order[p2pos]; const c=p2card(n);
+  if(!c) return; // guard: nothing valid to render (e.g. called after phase end)
+  const modIdx=P2CARDS.findIndex(x=>x.n===n); activeModule(modIdx);
+  const stage=document.getElementById('stage');
+  const star=c.ch?'<span class="ch-tag">★ CHALLENGE</span>':'';
+  const rec=p2ans[n];
+  const locked = rec && rec.locked;   // locked either correct OR wrong-after-2
+  const attemptsUsed = rec ? rec.attempts : 0;
+  const statusTxt = locked ? (rec.correct?'DECRYPTED':'LOCKED — FAILED')
+                  : (attemptsUsed===1 ? 'ATTEMPT 2 OF 2' : (p2skip.has(n)?'RETURNED':'AWAITING DECRYPT'));
+  stage.innerHTML=`
+    <div class="unit-head"><span class="cp-zone unit-id">◆ UNIT_${String(n).padStart(2,'0')}</span><span class="unit-file">q${String(n).padStart(2,'0')}.py ${star}</span><span class="cp-chev unit-chev"><span>›</span><span>›</span><span>›</span></span><span class="unit-status">${statusTxt}</span></div>
+    <div class="codepane"><div class="codepane-bar"><span class="cd r"></span><span class="cd y"></span><span class="cd g"></span><span class="cdname">q${String(n).padStart(2,'0')}.py</span><span class="cdlang">PYTHON 3</span></div><pre class="src">${c.codehtml}</pre></div>
+    <div class="terminal"><div class="term-bar"><span class="term-led"></span>OUTPUT_BUFFER<span class="term-hint">predict the exact output</span></div>
+    <div class="term-body"><div class="term-run">&gt;&gt;&gt; run q${String(n).padStart(2,'0')}.py</div><textarea class="term-input" id="p2in" placeholder="// type predicted output, one line per print" spellcheck="false" rows="${Math.max(c.nout,2)}"></textarea></div></div>
+    <div class="actions"><button class="btn btn-submit" id="p2sub" onclick="submitP2()">▶ SUBMIT</button><button class="btn btn-skip" id="p2skipBtn" onclick="skipP2()">SKIP / PASS ↷</button><span class="feedback" id="fb"></span><span class="nav-info">unit ${p2pos+1} / ${p2order.length}</span></div>`;
+  if(locked){
+    const ta=document.getElementById('p2in'); ta.value=rec.val||''; ta.disabled=true;
+    const s=document.getElementById('p2sub'); s.disabled=true; s.textContent=rec.correct?'✓ LOCKED':'✗ LOCKED';
+    const sk=document.getElementById('p2skipBtn'); if(sk) sk.disabled=true;
+    const fb=document.getElementById('fb');
+    fb.textContent=rec.correct?'✓ correct — locked':'✗ incorrect — locked (2 attempts used)';
+    fb.className='feedback '+(rec.correct?'ok':'no');
+  } else if(rec && rec.attempts===1){
+    const fb=document.getElementById('fb');
+    fb.textContent='✗ attempt 1 of 2 — 1 attempt left'; fb.className='feedback no';
+  }
+}
+function submitP2(){
+  const n=p2order[p2pos]; const ta=document.getElementById('p2in'); if(ta.disabled)return;
+  if(ta.value.trim()===''){ const fb=document.getElementById('fb'); fb.textContent='⚠ type your predicted output first (or use Skip)'; fb.className='feedback no'; return; }
+  const q=QS.find(x=>x.n===n);
+  const user=ta.value.split('\n').map(normLine).filter(Boolean);
+  let ok=user.length===q.key.length; if(ok) for(let i=0;i<q.key.length;i++) if(normLine(q.key[i])!==user[i]) ok=false;
+  const fb=document.getElementById('fb');
+  if(ok){
+    p2ans[n]={correct:true,locked:true,val:ta.value,attempts:(p2ans[n]?p2ans[n].attempts:0)+1};
+    p2skip.delete(n); ta.disabled=true; scores.p2++; sendLiveScore(2, scores.p2);
+    const s=document.getElementById('p2sub'); s.disabled=true; s.textContent='✓ LOCKED';
+    const sk=document.getElementById('p2skipBtn'); if(sk) sk.disabled=true;
+    fb.textContent='✓ correct — locked'; fb.className='feedback ok';
+    markResult(P2CARDS.findIndex(x=>x.n===n),true);
+    setTelemetry('SOLVE RATE', scores.p2+' / '+P2CARDS.length, scores.p2/P2CARDS.length);
+    setTimeout(nextP2,650);
+  } else {
+    const prev=p2ans[n]?p2ans[n].attempts:0;
+    const attempts=prev+1;
+    if(attempts>=2){
+      // second wrong -> lock as incorrect
+      p2ans[n]={correct:false,locked:true,val:ta.value,attempts};
+      ta.disabled=true;
+      const s=document.getElementById('p2sub'); s.disabled=true; s.textContent='✗ LOCKED';
+      const sk=document.getElementById('p2skipBtn'); if(sk) sk.disabled=true;
+      fb.textContent='✗ incorrect — locked (2 attempts used)'; fb.className='feedback no';
+      markResult(P2CARDS.findIndex(x=>x.n===n),false);
+      p2skip.delete(n);
+      setTimeout(nextP2,900);
+    } else {
+      p2ans[n]={correct:false,locked:false,val:ta.value,attempts};
+      fb.textContent='✗ attempt 1 of 2 — try again or skip'; fb.className='feedback no';
+    }
+  }
+}
+function skipP2(){
+  const n=p2order[p2pos];
+  // PROFESSOR UPGRADE: confirm if this is the last unanswered unit
+  const unanswered=p2order.filter(x=>!(p2ans[x]&&p2ans[x].locked)).length;
+  if(unanswered<=1 && !(p2ans[n]&&p2ans[n].locked)){
+    if(!confirm('This is your last open unit. Skipping now will leave it unanswered and may end the phase. Skip anyway?')) return;
+  }
+  if(!(p2ans[n]&&p2ans[n].locked)){ p2skip.add(n); p2order.splice(p2pos,1); p2order.push(n); if(p2pos>=p2order.length)p2pos=p2order.length-1; renderP2(); }
+  else nextP2();
+}
+function nextP2(){
+  // if every unit is locked (answered correct or failed), the phase is complete
+  const allLocked = p2order.every(n => p2ans[n] && p2ans[n].locked);
+  if(allLocked){ endPhase2(); return; }
+  // otherwise move to the next unlocked unit
+  if(p2pos+1<p2order.length){ p2pos++; renderP2(); }
+  else { const idx=p2order.findIndex(n=>!(p2ans[n]&&p2ans[n].locked)); if(idx>=0){p2pos=idx;renderP2();} }
+}
+function endPhase2(){ clearInterval(timerInt); timerInt=null; showPhaseSummary(2, scores.p2+' / '+P2CARDS.length+' correct', scores.p2+' pts', 3); }
+
+// ===== PHASE 3: LIVE DEBUG =====
+let p3pos=0, p3done={}, p3skip=new Set();
+function startPhase3(){
+  phase=3; setPhaseStep(3); setBodyPhase(3);
+  document.getElementById('sidebar').style.display='flex';
+  document.getElementById('hudState').textContent='PHASE 3 ACTIVE';
+  document.getElementById('stPhase').textContent='PHASE 3 · LIVE DEBUG';
+  p3pos=0; p3done={}; p3skip=new Set(); scores.p3=0;
+  buildModules(P3.map(p=>({ch:false})),'DBG');
+  window.jump_3=(i)=>{ p3pos=i; renderP3(); };
+  setTelemetry('DEBUG POINTS','0 / 100',0);
+  startTimer(TIMERS.p3, endPhase3);
+  renderP3();
+}
+function renderP3(){
+  const pr=P3[p3pos]; if(!pr) return; // guard against stale index
+  activeModule(p3pos);
+  const stage=document.getElementById('stage');
+  const solved=p3done[p3pos];
+  stage.innerHTML=`
+    <div class="unit-head"><span class="cp-zone unit-id">◆ DBG_${String(p3pos+1).padStart(2,'0')}</span><span class="unit-file">${pr.title} · ${pr.pts} pts</span><span class="cp-chev unit-chev"><span>›</span><span>›</span><span>›</span></span><span class="unit-status">${solved?'SOLVED':(p3skip.has(p3pos)?'RETURNED':'BROKEN — NEEDS FIX')}</span></div>
+    <div class="p3-instructions"><span class="step">1.</span> Copy this broken program into <b>Thonny</b>. &nbsp; <span class="step">2.</span> Fix and run it until it works. &nbsp; <span class="step">3.</span> Paste the <b>fixed code</b> below and press <b>RUN &amp; VERIFY</b>.</div>
+    <div class="codepane" style="margin-top:16px"><div class="codepane-bar"><span class="cd r"></span><span class="cd y"></span><span class="cd g"></span><span class="cdname">broken_${p3pos+1}.py</span><span class="cdlang">PYTHON 3</span></div><pre class="src">${pr.codehtml}</pre></div>
+    <label class="paste-label">▼ paste your fixed code here</label>
+    <div class="terminal"><div class="term-bar"><span class="term-led"></span>CODE_INPUT<span class="term-hint">paste the corrected program</span></div>
+    <div class="term-body"><textarea class="term-input" id="p3in" placeholder="// paste your fixed Python code here" spellcheck="false" rows="8">${solved?escapeHtml(p3done[p3pos].code):''}</textarea></div></div>
+    <div class="actions"><button class="btn btn-submit" id="p3sub" onclick="verifyP3()">▶ RUN &amp; VERIFY</button><button class="btn btn-skip" onclick="skipP3()">SKIP / PASS ↷</button><span class="feedback" id="fb"></span><span class="nav-info">program ${p3pos+1} / ${P3.length}</span></div>`;
+  if(solved){ const ta=document.getElementById('p3in'); ta.disabled=true; const s=document.getElementById('p3sub'); s.disabled=true; s.textContent='✓ VERIFIED'; const fb=document.getElementById('fb'); fb.textContent='✓ output matches — '+pr.pts+' pts'; fb.className='feedback ok'; }
+}
+function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function normCode(s){ return s.replace(/\r/g,'').replace(/[ \t]+$/gm,'').replace(/\n+$/,'').trim(); }
+function verifyP3(){
+  const pr=P3[p3pos]; const ta=document.getElementById('p3in'); if(ta.disabled)return;
+  const fb=document.getElementById('fb');
+  if(ta.value.trim()===''){ fb.textContent='⚠ paste your fixed code first (or use Skip)'; fb.className='feedback no'; return; }
+  const pasted=normCode(ta.value);
+  const target=normCode(pr.fixed);
+  const broken=normCode(pr.broken);
+  const ok = pasted===target || sameOutputHeuristic(pasted, pr);
+  if(ok){
+    p3done[p3pos]={code:ta.value}; p3skip.delete(p3pos); ta.disabled=true; scores.p3+=pr.pts; sendLiveScore(3, scores.p3);
+    const s=document.getElementById('p3sub'); s.disabled=true; s.textContent='✓ VERIFIED';
+    fb.textContent='✓ exploit patched — +'+pr.pts+' pts'; fb.className='feedback ok';
+    markResult(p3pos,true);
+    setTelemetry('BREACH POINTS', scores.p3+' / 100', scores.p3/100);
+    setTimeout(nextP3,800);
+  } else {
+    // PROFESSOR UPGRADE: smarter diff feedback
+    const stripWS=s=>s.replace(/\s+/g,'');
+    if(pasted.length===0){
+      fb.textContent='✗ paste box is empty — paste your fixed code here';
+    } else if(stripWS(pasted)===stripWS(broken)){
+      fb.textContent='✗ this is still the original broken code — fix it in Thonny first';
+    } else {
+      fb.textContent='✗ not matching yet — still an error somewhere; re-check in Thonny';
+    }
+    fb.className='feedback no';
+  }
+}
+// lightweight check: the fix must differ from broken AND match target structure
+function sameOutputHeuristic(pasted, pr){
+  // accept if pasted equals fixed ignoring all whitespace differences in indentation amount
+  const strip=s=>s.replace(/\r/g,'').split('\n').map(l=>l.replace(/\s+/g,' ').trim()).filter(Boolean).join('\n');
+  return strip(pasted)===strip(pr.fixed);
+}
+function skipP3(){ if(!p3done[p3pos]){ p3skip.add(p3pos); } nextP3(); }
+function nextP3(){
+  const next=P3.findIndex((_,i)=>!p3done[i]);
+  if(next>=0 && Object.keys(p3done).length<P3.length){ p3pos=next; renderP3(); }
+  else if(Object.keys(p3done).length>=P3.length){ endPhase3(); }
+  else { p3pos=(p3pos+1)%P3.length; renderP3(); }
+}
+function endPhase3(){ clearInterval(timerInt); timerInt=null; showPhaseSummary(3, Object.keys(p3done).length+' / '+P3.length+' patched', scores.p3+' / 100 pts', 4); }
+
+// ===== FINISH =====
+function finishAll(){
+  document.getElementById('stageView').style.display='none';
+  document.getElementById('sidebar').style.display='none';
+  document.getElementById('phasebar').style.display='none';
+  document.getElementById('finishView').classList.add('show');
+  document.getElementById('hudState').textContent='COMPLETE';
+  document.getElementById('stPhase').textContent='ALL PHASES COMPLETE';
+  document.getElementById('timer').textContent='--:--';
+  setPhaseStep(4);
+  const grid=document.getElementById('finGrid');
+  grid.innerHTML=`
+    <div class="fin-cell"><div class="n">${scores.p1}</div><div class="l">Phase 1 · Gauntlet</div></div>
+    <div class="fin-cell"><div class="n">${scores.p2}</div><div class="l">Phase 2 · Output</div></div>
+    <div class="fin-cell"><div class="n">${scores.p3}</div><div class="l">Phase 3 · Debug (pts)</div></div>`;
+  document.getElementById('finalTeam').textContent=team?('TEAM: '+team.name):'';
+  window.PYTHON_CHALLENGE_RESULT={team, scores, finishedAt:new Date().toISOString()};
+}
+
+renderMembers();
+document.getElementById('teamName').addEventListener('keydown',e=>{if(e.key==='Enter')document.querySelector('.member-input')?.focus();});
+
 </script>
 </body>
 </html>
